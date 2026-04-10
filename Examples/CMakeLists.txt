@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_library(ProjectDelta SHARED "src/delta/engine.cpp" "include/delta/definitions.h" "include/delta/engine.h")
-target_compile_definitions(ProjectDelta PRIVATE DLT_EXPORT_SYMBOLS)
+get_filename_component(DLT_EXAMPLES_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}" ABSOLUTE)
+get_filename_component(DLT_EXAMPLES_BUILD_DIR "${CMAKE_BINARY_DIR}/examples" ABSOLUTE)
 
-target_include_directories(ProjectDelta PUBLIC "include")
+add_subdirectory(HelloWorldGame)

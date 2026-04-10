@@ -13,10 +13,15 @@
 # limitations under the License.
 
 cmake_minimum_required(VERSION 4.2)
-project(ProjectKingslayer LANGUAGES CXX)
+project(ProjectDelta LANGUAGES CXX)
+
+get_filename_component(DLT_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}" ABSOLUTE)
+get_filename_component(DLT_BUILD_DIR "${CMAKE_CURRENT_BINARY_DIR}" ABSOLUTE)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_EXTENSIONS False)
 
 add_subdirectory(Engine)
+add_subdirectory(Launcher)
+add_subdirectory(Examples)
