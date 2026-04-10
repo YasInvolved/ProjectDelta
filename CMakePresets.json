@@ -1,0 +1,26 @@
+{
+   "version": 9,
+   "cmakeMinimumRequired": {
+      "major": 4,
+      "minor": 2,
+      "patch": 0
+   },
+   "configurePresets": [
+      {
+         "name": "conf-debug",
+         "binaryDir": "build/conf-debug",
+         "generator": "Ninja",
+         "cacheVariables": {
+            "CMAKE_BUILD_TYPE": "Debug"
+         }
+      },
+      {
+         "name": "conf-release",
+         "binaryDir": "build/conf-release",
+         "generator": "Ninja",
+         "cacheVariables": {
+            "CMAKE_BUILD_TYPE": "Release"
+         }
+      }
+   ]
+}

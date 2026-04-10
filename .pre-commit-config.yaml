@@ -1,0 +1,19 @@
+repos:
+   - repo: local
+     hooks:
+      - id: license-eye
+        name: license-eye
+        language: docker_image
+        entry: ghcr.io/apache/skywalking-eyes/license-eye:latest header fix
+        exclude: |
+            (?x)^(
+               .*\.json|
+               .*\.yaml|
+               LICENSE|
+               .*build/.*|
+               \.gitattributes|
+               \.gitignore|
+               \.editorconfig|
+            )$
+        pass_filenames: true
+        always_run: true
