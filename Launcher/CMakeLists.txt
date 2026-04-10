@@ -13,3 +13,4 @@
 # limitations under the License.
 
 add_executable(DeltaLauncher "main.cpp")
+target_link_libraries(DeltaLauncher PUBLIC ProjectDelta)

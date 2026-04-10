@@ -13,6 +13,6 @@
 # limitations under the License.
 
 include(${DLT_ROOT_DIR}/cmake/DeltaGame.cmake)
-add_library(HelloWorldGame SHARED game.cpp)
+add_library(HelloWorldGame MODULE game.cpp)
 
 setup_game(HelloWorldGame)

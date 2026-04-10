@@ -16,7 +16,15 @@
 
 #include "definitions.h"
 
-namespace delta
+namespace delta::Engine
 {
-    void DLT_API Engine_Initialize();
+    struct Context
+    {
+        bool isRunning;
+    };
+
+    typedef void (*GameUpdateFunc)(Context*);
+
+    void DLT_API Initialize(Context& context);
+    void DLT_API Shutdown(Context& context);
 }

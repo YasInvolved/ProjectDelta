@@ -16,7 +16,12 @@
 
 #include <delta/engine.h>
 
-void delta::Engine_Initialize()
+void delta::Engine::Initialize(Context& context)
 {
+    context.isRunning = true;
+}
 
+void delta::Engine::Shutdown(Context& context)
+{
+    // shutdown
 }

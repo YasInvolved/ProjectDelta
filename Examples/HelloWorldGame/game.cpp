@@ -14,3 +14,25 @@
  * limitations under the License.
  */
 
+#include <delta/engine.h>
+
+#include <iostream>
+
+#ifdef WIN32
+    #ifdef DLT_GAME_EXPORT
+        #define GAME_API __declspec(dllexport)
+    #else
+        #define GAME_API __declspec(dllimport)
+    #endif
+#else
+    #define GAME_API
+#endif
+
+extern "C"
+{
+    void GAME_API Game_OnUpdate(delta::Engine::Context* context)
+    {
+        // do something with the context
+        std::cout << "Hello World!\n";
+    }
+}

@@ -14,7 +14,54 @@
  * limitations under the License.
  */
 
+#include <delta/engine.h>
+
+#include <iostream>
+
+#ifdef WIN32
+    #include <Windows.h>
+    using DynamicLibrary = HMODULE;
+
+    #define LOAD_LIB(path) LoadLibraryA(path)
+    #define GET_FUNC(lib, name) GetProcAddress(lib, name)
+    #define UNLOAD_LIB(lib) FreeLibrary(lib)
+#else
+    #error "Platform unsupported"
+#endif
+
+using UpdateFunc = delta::Engine::GameUpdateFunc;
+static delta::Engine::Context g_context;
+
 int main(int argc, char** argv)
 {
+    if (argc < 2)
+    {
+        std::cout << "Game library was expected as a first argument.\n";
+        return -1;
+    }
+
+    const char* gameLibName = argv[1];
+    delta::Engine::Initialize(g_context);
+
+    DynamicLibrary gameLib = LOAD_LIB(argv[1]);
+    if (!gameLib)
+    {
+        std::cout << "Failed to load game library.\n";
+        return -1;
+    }
+
+    delta::Engine::GameUpdateFunc updateFunc = reinterpret_cast<UpdateFunc>(
+        reinterpret_cast<void*>(GET_FUNC(gameLib, "Game_OnUpdate"))
+    );
+
+    while (g_context.isRunning)
+    {
+        if (updateFunc)
+            updateFunc(&g_context);
+    }
+
+    UNLOAD_LIB(gameLib);
+    delta::Engine::Shutdown(g_context);
+
     return 0;
 }
