@@ -29,8 +29,19 @@
     #error "Platform unsupported"
 #endif
 
+using InitFunc = delta::Engine::GameInitFunc;
 using UpdateFunc = delta::Engine::GameUpdateFunc;
+using ShutdownFunc = delta::Engine::GameShutdownFunc;
+
 static delta::Engine::Context g_context;
+
+template <typename T>
+inline T loadGameFunc(DynamicLibrary gameLib, const char* const fn)
+{
+    return reinterpret_cast<T>(
+        reinterpret_cast<void*>(GET_FUNC(gameLib, fn))
+    );
+}
 
 int main(int argc, char** argv)
 {
@@ -50,16 +61,24 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    delta::Engine::GameUpdateFunc updateFunc = reinterpret_cast<UpdateFunc>(
-        reinterpret_cast<void*>(GET_FUNC(gameLib, "Game_OnUpdate"))
-    );
+    InitFunc gameInitFn = loadGameFunc<InitFunc>(gameLib, "Game_OnInit");
+    UpdateFunc gameUpdateFn = loadGameFunc<UpdateFunc>(gameLib, "Game_OnUpdate");
+    ShutdownFunc gameShutdownFn = loadGameFunc<ShutdownFunc>(gameLib, "Game_OnShutdown");
 
-    while (g_context.isRunning)
+    bool successfullyLoaded = gameInitFn && gameUpdateFn && gameShutdownFn;
+    if (!successfullyLoaded)
     {
-        if (updateFunc)
-            updateFunc(&g_context);
+        std::cout << "Failed to load game functions. Please ensure that they're exposed!\n";
+        return -1;
     }
 
+    gameInitFn(&g_context);
+    while (g_context.isRunning)
+    {
+        gameUpdateFn(&g_context);
+    }
+
+    gameShutdownFn(&g_context);
     UNLOAD_LIB(gameLib);
     delta::Engine::Shutdown(g_context);
 

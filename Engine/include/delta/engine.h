@@ -23,7 +23,9 @@ namespace delta::Engine
         bool isRunning;
     };
 
+    typedef void (*GameInitFunc)(Context*);
     typedef void (*GameUpdateFunc)(Context*);
+    typedef void (*GameShutdownFunc)(Context*);
 
     void DLT_API Initialize(Context& context);
     void DLT_API Shutdown(Context& context);
