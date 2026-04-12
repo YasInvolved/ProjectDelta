@@ -12,12 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_library(ProjectDelta SHARED "src/delta/engine.cpp" "include/delta/definitions.h" "include/delta/engine.h")
+add_library(libtrigger STATIC  "include/trigger/trigger.h" "src/trigger/trigger_win32.cpp")
+target_include_directories(libtrigger PUBLIC include)
 
-target_compile_definitions(ProjectDelta
-   PRIVATE DLT_EXPORT_SYMBOLS
-)
-
-target_include_directories(ProjectDelta
-   PUBLIC "include"
-)
+if (WIN32)
+   target_link_libraries(libtrigger PRIVATE ws2_32.lib)
+endif()

@@ -22,6 +22,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_EXTENSIONS False)
 
+add_subdirectory(DeltaTrigger)
 add_subdirectory(Engine)
 add_subdirectory(Launcher)
 add_subdirectory(Examples)

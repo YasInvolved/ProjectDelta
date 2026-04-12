@@ -15,6 +15,7 @@
  */
 
 #include <delta/engine.h>
+#include <trigger/trigger.h>
 
 #include <iostream>
 
@@ -34,6 +35,7 @@ using UpdateFunc = delta::Engine::GameUpdateFunc;
 using ShutdownFunc = delta::Engine::GameShutdownFunc;
 
 static delta::Engine::Context g_context;
+static trigger::SignalSocket g_reloadSocket;
 
 template <typename T>
 inline T loadGameFunc(DynamicLibrary gameLib, const char* const fn)
@@ -41,6 +43,12 @@ inline T loadGameFunc(DynamicLibrary gameLib, const char* const fn)
     return reinterpret_cast<T>(
         reinterpret_cast<void*>(GET_FUNC(gameLib, fn))
     );
+}
+
+static void cleanup()
+{
+    delta::Engine::Shutdown(g_context);
+    trigger::Close(g_reloadSocket);
 }
 
 int main(int argc, char** argv)
@@ -51,6 +59,13 @@ int main(int argc, char** argv)
         return -1;
     }
 
+    g_reloadSocket = trigger::StartServer(6767);
+    if (g_reloadSocket == trigger::INVALID_SIGNAL_SOCKET)
+    {
+        std::cout << "Failed to open a socket for listening!\n";
+        return -1;
+    }
+
     const char* gameLibName = argv[1];
     delta::Engine::Initialize(g_context);
 
@@ -58,6 +73,7 @@ int main(int argc, char** argv)
     if (!gameLib)
     {
         std::cout << "Failed to load game library.\n";
+        cleanup();
         return -1;
     }
 
@@ -69,18 +85,25 @@ int main(int argc, char** argv)
     if (!successfullyLoaded)
     {
         std::cout << "Failed to load game functions. Please ensure that they're exposed!\n";
+        cleanup();
         return -1;
     }
 
     gameInitFn(&g_context);
     while (g_context.isRunning)
     {
+        if (trigger::CheckForSignal(g_reloadSocket))
+        {
+            std::cout << "Reload signal received. Performing a hot-reload!\n";
+            // TODO: Actually perform it
+        }
+
         gameUpdateFn(&g_context);
     }
 
     gameShutdownFn(&g_context);
     UNLOAD_LIB(gameLib);
-    delta::Engine::Shutdown(g_context);
+    cleanup();
 
     return 0;
 }
