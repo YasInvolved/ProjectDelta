@@ -37,8 +37,6 @@ extern "C"
 
     void GAME_API Game_OnUpdate(delta::Engine::Context* context)
     {
-        // do something with the context
-        std::cout << "Hello World!\n";
     }
 
     void GAME_API Game_OnShutdown(delta::Engine::Context* context)
