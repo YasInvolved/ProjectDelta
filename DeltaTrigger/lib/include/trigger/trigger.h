@@ -21,7 +21,7 @@
 namespace trigger
 {
     using SignalSocket = intptr_t;
-    constexpr SignalSocket INVALID_SIGNAL_SOCKET = -1;
+    constexpr SignalSocket INVALID_SIGNAL_SOCKET = ~(0ull);
 
     bool Send(int port);
     SignalSocket StartServer(int port);

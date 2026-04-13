@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_library(libtrigger STATIC  "include/trigger/trigger.h" "src/trigger/trigger_win32.cpp")
+add_library(libtrigger STATIC  "include/trigger/trigger.h" "src/trigger/trigger.cpp")
 target_include_directories(libtrigger PUBLIC include)
 
 if (WIN32)
