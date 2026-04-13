@@ -41,4 +41,11 @@ function(setup_game GAME_TARGET)
          VS_DEBUGGER_COMMAND_ARGUMENTS "$<TARGET_FILE:${GAME_TARGET}>"
       )
    endif()
+
+   add_custom_target("Run${GAME_TARGET}"
+      COMMAND ${CMAKE_COMMAND} -E echo "Launching game"
+      COMMAND ./$<TARGET_FILE_NAME:DeltaLauncher> $<TARGET_FILE:${GAME_TARGET}>
+      DEPENDS ${GAME_TARGET} ProjectDelta DeltaLauncher
+      WORKING_DIRECTORY ${GAME_BIN_DIR}
+   )
 endfunction()

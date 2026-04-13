@@ -27,10 +27,15 @@
     using DynamicLibrary = HMODULE;
 
     #define LOAD_LIB(path) LoadLibraryA(path)
-    #define GET_FUNC(lib, name) GetProcAddress(lib, name)
-    #define UNLOAD_LIB(lib) FreeLibrary(lib)
+    #define LOAD_SYMB(name, lib) GetProcAddress(lib, name)
+    #define UNLOAD_LIB(lib) FreeLibraryA(lib)
 #else
-    #error "Platform unsupported"
+    #include <dlfcn.h>
+    using DynamicLibrary = void*;
+
+    #define LOAD_LIB(path) dlopen(path, RTLD_LAZY)
+    #define LOAD_SYMB(name, lib) dlsym(lib, name)
+    #define UNLOAD_LIB(lib) dlclose(lib)
 #endif
 
 namespace fs = std::filesystem;
@@ -39,93 +44,93 @@ using InitFunc = delta::Engine::GameInitFunc;
 using UpdateFunc = delta::Engine::GameUpdateFunc;
 using ShutdownFunc = delta::Engine::GameShutdownFunc;
 
+template <typename T>
+inline T loadSymbol(const char* symName, DynamicLibrary lib)
+{
+    return reinterpret_cast<T>(
+        reinterpret_cast<void*>(LOAD_SYMB(symName, lib))
+    );
+}
+
 struct Game
 {
-    static constexpr const char* INVALID_PATH = reinterpret_cast<const char*>(~(0ull));
-    static constexpr DynamicLibrary INVALID_LIB_HANDLE = reinterpret_cast<DynamicLibrary>(~(0ull));
+#ifdef _WIN32
+    static constexpr const char MODULE_SHADOW_COPY[] = "running_game.dll";
+#else
+    static constexpr const char MODULE_SHADOW_COPY[] = "running_game.so";
+#endif
 
-    Game() : libPath(INVALID_PATH), lib(INVALID_LIB_HANDLE), initFn(nullptr), updateFn(nullptr), shutdownFn(nullptr)
+    Game(const char* _modulePath)
+        : modulePath(_modulePath),
+        module(0),
+        initFn(nullptr),
+        updateFn(nullptr),
+        shutdownFn(nullptr)
     { }
 
-    Game(const char* _libPath) : libPath(_libPath), lib(INVALID_LIB_HANDLE), initFn(nullptr), updateFn(nullptr), shutdownFn(nullptr)
-    { }
-
-    const char* libPath;
-    DynamicLibrary lib;
+    const char* modulePath;
+    DynamicLibrary module;
     InitFunc initFn;
     UpdateFunc updateFn;
     ShutdownFunc shutdownFn;
+
+    bool load()
+    {
+        try
+        {
+            if (!fs::exists(modulePath))
+            {
+                std::cout << "[DeltaLauncher] Game module doesn't exist at specified path.\n";
+                return false;
+            }
+
+            fs::copy(modulePath, MODULE_SHADOW_COPY, fs::copy_options::overwrite_existing);
+            std::cout << "[DeltaLauncher] Game module's shadow copy successfully created.\n";
+        }
+        catch (const fs::filesystem_error& e)
+        {
+            std::cout << "[DeltaLauncher] Failed to make a shadow copy of the game module.\n";
+            return false;
+        }
+
+        module = LOAD_LIB(modulePath);
+        if (!module)
+        {
+            std::cout << "[DeltaLauncher] Failed to load library.\n";
+            return false;
+        }
+
+        initFn = loadSymbol<decltype(initFn)>("Game_OnInit", module);
+        updateFn = loadSymbol<decltype(updateFn)>("Game_OnUpdate", module);
+        shutdownFn = loadSymbol<decltype(shutdownFn)>("Game_OnShutdown", module);
+
+        if (!initFn || !updateFn || !shutdownFn)
+        {
+            std::cout << "[DeltaLauncher] Failed to load symbols.\n";
+            return false;
+        }
+
+        return true;
+    }
+
+    void unload()
+    {
+        UNLOAD_LIB(module);
+        module = 0;
+        initFn = nullptr;
+        updateFn = nullptr;
+        shutdownFn = nullptr;
+    }
+
+    bool reload()
+    {
+        unload();
+        return load();
+    }
 };
 
 static delta::Engine::Context g_context;
 static trigger::SignalSocket g_reloadSocket;
-
-template <typename T>
-inline T loadGameFunc(DynamicLibrary gameLib, const char* const fn)
-{
-    return reinterpret_cast<T>(
-        reinterpret_cast<void*>(GET_FUNC(gameLib, fn))
-    );
-}
-
-static bool loadGame(Game& game)
-{
-#ifdef _WIN32
-    constexpr const char shadowLib[] = "game_running.dll";
-#else
-    constexpr const char shadowLib[] = "game_running.so";
-#endif
-
-    assert(game.libPath != Game::INVALID_PATH);
-
-    try
-    {
-        if (!fs::exists(game.libPath))
-        {
-            std::cout << "[DeltaLauncher] Game library doesn't exist!\n";
-            return false;
-        }
-
-        fs::copy(game.libPath, shadowLib, fs::copy_options::overwrite_existing);
-        std::cout << "[DeltaLauncher] Game's library shadow copy created successfully.\n";
-    }
-    catch (const fs::filesystem_error& e)
-    {
-        std::cout << "[DeltaLauncher] An error occured during Game's library shadow copy creation!\n";
-        return false;
-    }
-
-    game.lib = LOAD_LIB(shadowLib);
-    if (!game.lib || game.lib == Game::INVALID_LIB_HANDLE)
-        return false;
-
-    game.initFn = loadGameFunc<decltype(game.initFn)>(game.lib, "Game_OnInit");
-    game.updateFn = loadGameFunc<decltype(game.updateFn)>(game.lib, "Game_OnUpdate");
-    game.shutdownFn = loadGameFunc<decltype(game.shutdownFn)>(game.lib, "Game_OnShutdown");
-
-    if (!game.initFn || !game.updateFn || !game.shutdownFn)
-        return false;
-
-    return true;
-}
-
-static void reloadGame(Game& game)
-{
-    game.shutdownFn(&g_context);
-    UNLOAD_LIB(game.lib);
-
-    if (!loadGame(game))
-    {
-        std::cout << "[DeltaLauncher] Failed to reload the game.\n";
-        game.lib = Game::INVALID_LIB_HANDLE;
-        game.shutdownFn = nullptr;
-        game.updateFn = nullptr;
-        game.initFn = nullptr;
-        return;
-    }
-
-    game.initFn(&g_context);
-}
 
 int main(int argc, char** argv)
 {
@@ -146,9 +151,9 @@ int main(int argc, char** argv)
     delta::Engine::Initialize(g_context);
 
     Game game(argv[1]);
-    if (!loadGame(game))
+    if (!game.load())
     {
-        std::cout << "[DeltaLauncher] Failed to load the game library.\n";
+        std::cout << "[DeltaLauncher] Failed to load the game.\n";
         return -1;
     }
 
@@ -158,19 +163,18 @@ int main(int argc, char** argv)
         if (trigger::CheckForSignal(g_reloadSocket))
         {
             std::cout << "[DeltaLauncher] Reload signal received. Performing a hot-reload!\n";
-            reloadGame(game);
+            if (!game.reload())
+            {
+                std::cout << "[DeltaLauncher] Failed to hot-reload the game.\n";
+                break;
+            }
             continue;
         }
 
         game.updateFn(&g_context);
     }
 
-    if (game.lib != Game::INVALID_LIB_HANDLE)
-    {
-        game.shutdownFn(&g_context);
-        UNLOAD_LIB(game.lib);
-    }
-
+    game.shutdownFn(&g_context);
     delta::Engine::Shutdown(g_context);
 
     return 0;

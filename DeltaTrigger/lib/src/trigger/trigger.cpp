@@ -16,6 +16,8 @@
 
 #include <trigger/trigger.h>
 
+#include <iostream>
+
 #ifdef _WIN32
     #define WIN32_LEAN_AND_MEAN
     #include <WinSock2.h>
@@ -55,7 +57,10 @@ SignalSocket trigger::StartServer(int port)
 {
     SignalSocket sock;
     if (!initSocket(sock))
+    {
+        std::cout << "[DeltaTrigger] Failed to initialize a socket.\n";
         return INVALID_SIGNAL_SOCKET;
+    }
 
 #ifdef _WIN32
     u_long mode = 1;
@@ -76,6 +81,7 @@ SignalSocket trigger::StartServer(int port)
     if (bind(sock, (sockaddr*)&addr, sizeof(addr)) < 0)
     {
         Close(sock);
+        std::cout << "[DeltaTrigger] Failed to bind a socket.\n";
         return INVALID_SIGNAL_SOCKET;
     }
 
