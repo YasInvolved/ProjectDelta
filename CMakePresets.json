@@ -17,6 +17,21 @@
             "lhs": "${hostSystemName}",
             "rhs": "Windows"
          }
+      },
+      {
+         "name": "cfg-linux-debug",
+         "displayName": "Linux Debug (Ninja)",
+         "hidden": false,
+         "generator": "Ninja",
+         "binaryDir": "${sourceDir}/build/linux",
+         "cacheVariables": {
+            "CMAKE_BUILD_TYPE": "Debug"
+         },
+         "condition": {
+            "type": "equals",
+            "lhs": "${hostSystemName}",
+            "rhs": "Linux"
+         }
       }
    ],
    "buildPresets": [
@@ -29,6 +44,11 @@
          "name": "build-vs-x64-release",
          "configurePreset": "cfg-vs-x64",
          "configuration": "Release"
+      },
+      {
+         "name": "build-linux-debug",
+         "configurePreset": "cfg-linux-debug",
+         "configuration": "Debug"
       }
    ]
 }
