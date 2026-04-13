@@ -28,7 +28,7 @@
 
     #define LOAD_LIB(path) LoadLibraryA(path)
     #define LOAD_SYMB(name, lib) GetProcAddress(lib, name)
-    #define UNLOAD_LIB(lib) FreeLibraryA(lib)
+    #define UNLOAD_LIB(lib) FreeLibrary(lib)
 #else
     #include <dlfcn.h>
     using DynamicLibrary = void*;

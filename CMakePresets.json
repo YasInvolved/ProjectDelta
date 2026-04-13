@@ -7,11 +7,13 @@
    },
    "configurePresets": [
       {
-         "name": "cfg-vs-x64",
-         "displayName": "Win64 (Visual Studio 2026)",
-         "generator": "Visual Studio 18 2026",
-         "architecture": "x64",
+         "name": "cfg-win64-debug",
+         "displayName": "Win64",
+         "generator": "Ninja",
          "binaryDir": "${sourceDir}/build/windows-vs",
+         "cacheVariables": {
+            "CMAKE_BUILD_TYPE": "Debug"
+         },
          "condition": {
             "type": "equals",
             "lhs": "${hostSystemName}",
@@ -23,7 +25,7 @@
          "displayName": "Linux Debug (Ninja)",
          "hidden": false,
          "generator": "Ninja",
-         "binaryDir": "${sourceDir}/build/linux",
+         "binaryDir": "${sourceDir}/build/linux-debug",
          "cacheVariables": {
             "CMAKE_BUILD_TYPE": "Debug"
          },
@@ -37,18 +39,11 @@
    "buildPresets": [
       {
          "name": "build-vs-x64-debug",
-         "configurePreset": "cfg-vs-x64",
-         "configuration": "Debug"
-      },
-      {
-         "name": "build-vs-x64-release",
-         "configurePreset": "cfg-vs-x64",
-         "configuration": "Release"
+         "configurePreset": "cfg-win64-debug"
       },
       {
          "name": "build-linux-debug",
-         "configurePreset": "cfg-linux-debug",
-         "configuration": "Debug"
+         "configurePreset": "cfg-linux-debug"
       }
    ]
 }

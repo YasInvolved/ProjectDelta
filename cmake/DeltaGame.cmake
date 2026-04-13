@@ -33,13 +33,6 @@ function(setup_game GAME_TARGET)
    if (MSVC)
       target_compile_definitions(${GAME_TARGET} PRIVATE DLT_GAME_EXPORT)
       target_compile_options(${GAME_TARGET} PRIVATE /Zi)
-
-      set_target_properties(${GAME_TARGET} PROPERTIES
-         LINK_FLAGS "/DEBUG"
-         VS_DEBUGGER_COMMAND "${GAME_BIN_DIR}/$<TARGET_FILE_NAME:DeltaLauncher>"
-         VS_DEBUGGER_WORKING_DIRECTORY "${GAME_BIN_DIR}"
-         VS_DEBUGGER_COMMAND_ARGUMENTS "$<TARGET_FILE:${GAME_TARGET}>"
-      )
    endif()
 
    add_custom_target("Run${GAME_TARGET}"
