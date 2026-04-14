@@ -18,18 +18,45 @@
 
 #include "os.h"
 #include <Windows.h>
+#include <intrin.h>
 
 namespace delta::platform::os
 {
     static Context g_context;
 
+    inline static void fetchCpuidValues()
+    {
+        memset(g_context.cpu.manufacturerId, 0, 13);
+
+        int cpuinfo[4];
+        __cpuid(cpuinfo, 0);
+
+        memcpy(g_context.cpu.manufacturerId, &cpuinfo[1], sizeof(int));
+        memcpy(g_context.cpu.manufacturerId + 4, &cpuinfo[3], sizeof(int));
+        memcpy(g_context.cpu.manufacturerId + 8, &cpuinfo[2], sizeof(int));
+
+        __cpuidex(cpuinfo, 7, 0);
+        g_context.cpu.hasAVX2 = (cpuinfo[1] & (1 << 5)) != 0;
+    }
+
     void Initialize()
     {
+        fetchCpuidValues();
+
         SYSTEM_INFO info;
         GetSystemInfo(&info);
 
         g_context.config.osPageSize = info.dwPageSize;
-        g_context.hardware.processorCount = info.dwNumberOfProcessors;
+        g_context.cpu.processorCount = info.dwNumberOfProcessors;
+
+        MEMORYSTATUSEX statex{};
+        statex.dwLength = sizeof(statex);
+
+        if (GlobalMemoryStatusEx(&statex))
+        {
+            g_context.memory.totalRam = statex.ullTotalPhys / (1 << 20);
+            g_context.memory.freeRam = statex.ullAvailPhys / (1 << 20);
+        }
     }
 
     const Context* getContext() noexcept { return &g_context; }

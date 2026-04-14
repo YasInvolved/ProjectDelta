@@ -25,8 +25,16 @@ namespace delta::platform::os
     {
         struct
         {
+            char manufacturerId[13];
             uint32_t processorCount;
-        } hardware;
+            bool hasAVX2;
+        } cpu;
+
+        struct
+        {
+            uint64_t totalRam;
+            uint64_t freeRam;
+        } memory;
 
         struct
         {

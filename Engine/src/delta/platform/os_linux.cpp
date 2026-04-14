@@ -18,15 +18,43 @@
 
 #include <delta/platform/os.h>
 
+#include <cstring>
 #include <unistd.h>
+#include <cpuid.h>
+#include <sys/sysinfo.h>
 
 namespace delta::platform::os
 {
     static Context g_context;
 
+    inline static void fetchCpuidValues()
+    {
+        memset(g_context.cpu.manufacturerId, 0, 13);
+
+        uint32_t eax, ebx, ecx, edx;
+        if (__get_cpuid(0, &eax, &ebx, &ecx, &edx))
+        {
+            memcpy(g_context.cpu.manufacturerId, &ebx, sizeof(uint32_t));
+            memcpy(g_context.cpu.manufacturerId + 4, &edx, sizeof(uint32_t));
+            memcpy(g_context.cpu.manufacturerId + 8, &ecx, sizeof(uint32_t));
+        }
+
+        if (__get_cpuid_count(7, 0, &eax, &ebx, &ecx, &edx))
+            g_context.cpu.hasAVX2 = (ebx & (1 << 5)) != 0;
+    }
+
     void Initialize()
     {
-        g_context.hardware.processorCount = sysconf(_SC_NPROCESSORS_ONLN);
+        fetchCpuidValues();
+
+        struct sysinfo info;
+        if (sysinfo(&info) == 0)
+        {
+            g_context.memory.totalRam = (info.totalram * info.mem_unit) / (1 << 20);
+            g_context.memory.freeRam = (info.freeram * info.mem_unit) / (1 << 20);
+        }
+
+        g_context.cpu.processorCount = sysconf(_SC_NPROCESSORS_ONLN);
         g_context.config.osPageSize = getpagesize();
     }
 

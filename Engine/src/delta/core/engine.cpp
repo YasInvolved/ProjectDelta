@@ -27,7 +27,11 @@ void delta::Engine::Initialize(Context& context)
     const auto* sysCtx = delta::platform::os::getContext();
     std::cout <<
         "[DeltaEngine] OS Page size: " << sysCtx->config.osPageSize << '\n' <<
-        "[DetlaEngine] Number of processors: " << sysCtx->hardware.processorCount << '\n';
+        "[DeltaEngine] Total RAM: " << sysCtx->memory.totalRam << " MB\n" <<
+        "[DeltaEngine] Available RAM: " << sysCtx->memory.freeRam << " MB\n" <<
+        "[DeltaEngine] CPU VendorID: " << sysCtx->cpu.manufacturerId << '\n' <<
+        "[DeltaEngine] CPU Count: " << sysCtx->cpu.processorCount << '\n' <<
+        "[DeltaEngine] AVX2 Support: " << (sysCtx->cpu.hasAVX2 ? "true" : "false") << '\n';
 }
 
 void delta::Engine::Shutdown(Context& context)
