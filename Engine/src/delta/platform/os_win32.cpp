@@ -28,7 +28,8 @@ namespace delta::platform::os
         SYSTEM_INFO info;
         GetSystemInfo(&info);
 
-        g_context.osPageSize = info.dwPageSize;
+        g_context.config.osPageSize = info.dwPageSize;
+        g_context.hardware.processorCount = info.dwNumberOfProcessors;
     }
 
     const Context* getContext() noexcept { return &g_context; }

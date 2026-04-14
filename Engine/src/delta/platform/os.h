@@ -17,12 +17,21 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 
 namespace delta::platform::os
 {
     struct Context
     {
-        size_t osPageSize;
+        struct
+        {
+            uint32_t processorCount;
+        } hardware;
+
+        struct
+        {
+            uint32_t osPageSize;
+        } config;
     };
 
     void Initialize();

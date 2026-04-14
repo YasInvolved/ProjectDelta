@@ -25,7 +25,9 @@ void delta::Engine::Initialize(Context& context)
     delta::platform::os::Initialize();
 
     const auto* sysCtx = delta::platform::os::getContext();
-    std::cout << "[DeltaEngine] OS Page size: " << sysCtx->osPageSize << '\n';
+    std::cout <<
+        "[DeltaEngine] OS Page size: " << sysCtx->config.osPageSize << '\n' <<
+        "[DetlaEngine] Number of processors: " << sysCtx->hardware.processorCount << '\n';
 }
 
 void delta::Engine::Shutdown(Context& context)

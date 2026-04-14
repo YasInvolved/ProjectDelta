@@ -26,7 +26,8 @@ namespace delta::platform::os
 
     void Initialize()
     {
-        g_context.osPageSize = getpagesize();
+        g_context.hardware.processorCount = sysconf(_SC_NPROCESSORS_ONLN);
+        g_context.config.osPageSize = getpagesize();
     }
 
     const Context* getContext() noexcept { return &g_context; }
