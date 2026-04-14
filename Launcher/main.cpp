@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include <delta/engine.h>
+#include <delta/core/engine.h>
 #include <trigger/trigger.h>
 
 #include <string>

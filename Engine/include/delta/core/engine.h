@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "definitions.h"
+#include <delta/definitions.h>
 
 namespace delta::Engine
 {

@@ -14,11 +14,18 @@
  * limitations under the License.
  */
 
-#include <delta/engine.h>
+#include <iostream>
+
+#include <delta/core/engine.h>
+#include <delta/platform/os.h>
 
 void delta::Engine::Initialize(Context& context)
 {
     context.isRunning = true;
+    delta::platform::os::Initialize();
+
+    const auto* sysCtx = delta::platform::os::getContext();
+    std::cout << "[DeltaEngine] OS Page size: " << sysCtx->osPageSize << '\n';
 }
 
 void delta::Engine::Shutdown(Context& context)

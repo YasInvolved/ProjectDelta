@@ -12,7 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-add_library(ProjectDelta SHARED "src/delta/engine.cpp" "include/delta/definitions.h" "include/delta/engine.h")
+add_library(ProjectDelta SHARED
+   "src/delta/core/engine.cpp"
+   "include/delta/core/engine.h"
+   "include/delta/definitions.h"
+ "src/delta/platform/os.h" "src/delta/platform/os_win32.cpp")
 
 target_compile_definitions(ProjectDelta
    PRIVATE DLT_EXPORT_SYMBOLS
@@ -20,4 +24,5 @@ target_compile_definitions(ProjectDelta
 
 target_include_directories(ProjectDelta
    PUBLIC "include"
+   PRIVATE "src"
 )

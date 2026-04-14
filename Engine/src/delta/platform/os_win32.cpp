@@ -14,33 +14,24 @@
  * limitations under the License.
  */
 
-#include <delta/core/engine.h>
+#ifdef _WIN32
 
-#include <iostream>
+#include "os.h"
+#include <Windows.h>
 
-#ifdef WIN32
-    #ifdef DLT_GAME_EXPORT
-        #define GAME_API __declspec(dllexport)
-    #else
-        #define GAME_API __declspec(dllimport)
-    #endif
-#else
-    #define GAME_API
-#endif
-
-extern "C"
+namespace delta::platform::os
 {
-    void GAME_API Game_OnInit(delta::Engine::Context* context)
+    static Context g_context;
+
+    void Initialize()
     {
-        std::cout << "Initializing game\n";
+        SYSTEM_INFO info;
+        GetSystemInfo(&info);
+
+        g_context.osPageSize = info.dwPageSize;
     }
 
-    void GAME_API Game_OnUpdate(delta::Engine::Context* context)
-    {
-    }
-
-    void GAME_API Game_OnShutdown(delta::Engine::Context* context)
-    {
-        std::cout << "Shutdown\n";
-    }
+    const Context* getContext() noexcept { return &g_context; }
 }
+
+#endif
