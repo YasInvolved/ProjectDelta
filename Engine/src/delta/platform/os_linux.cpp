@@ -14,17 +14,22 @@
  * limitations under the License.
  */
 
-#pragma once
+#ifdef __linux__
 
-#include <cstddef>
+#include <delta/platform/os.h>
+
+#include <unistd.h>
 
 namespace delta::platform::os
 {
-    struct Context
-    {
-        size_t osPageSize;
-    };
+    static Context g_context;
 
-    void Initialize();
-    const Context* getContext() noexcept;
+    void Initialize()
+    {
+        g_context.osPageSize = getpagesize();
+    }
+
+    const Context* getContext() noexcept { return &g_context; }
 }
+
+#endif

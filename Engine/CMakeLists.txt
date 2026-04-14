@@ -16,7 +16,10 @@ add_library(ProjectDelta SHARED
    "src/delta/core/engine.cpp"
    "include/delta/core/engine.h"
    "include/delta/definitions.h"
- "src/delta/platform/os.h" "src/delta/platform/os_win32.cpp")
+   "src/delta/platform/os.h"
+   "src/delta/platform/os_win32.cpp"
+   "src/delta/platform/os_linux.cpp"
+)
 
 target_compile_definitions(ProjectDelta
    PRIVATE DLT_EXPORT_SYMBOLS
