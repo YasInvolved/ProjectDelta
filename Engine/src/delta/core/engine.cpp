@@ -30,6 +30,7 @@ void delta::Engine::Initialize(Context& context)
         "[DeltaEngine] Total RAM: " << sysCtx->memory.totalRam << " MB\n" <<
         "[DeltaEngine] Available RAM: " << sysCtx->memory.freeRam << " MB\n" <<
         "[DeltaEngine] CPU VendorID: " << sysCtx->cpu.manufacturerId << '\n' <<
+        "[DeltaEngine] CPU Brand String: " << sysCtx->cpu.brandString << '\n' <<
         "[DeltaEngine] CPU Count: " << sysCtx->cpu.processorCount << '\n' <<
         "[DeltaEngine] AVX2 Support: " << (sysCtx->cpu.hasAVX2 ? "true" : "false") << '\n';
 }

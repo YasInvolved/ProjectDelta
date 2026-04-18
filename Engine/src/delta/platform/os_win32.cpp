@@ -24,6 +24,15 @@ namespace delta::platform::os
 {
     static Context g_context;
 
+    struct BrandStringCall
+    {
+        int c1[4];
+        int c2[4];
+        int c3[4];
+
+        static constexpr char UNSPECIFIED_VALUE[] = "(unspecified)";
+    };
+
     inline static void fetchCpuidValues()
     {
         memset(g_context.cpu.manufacturerId, 0, 13);
@@ -37,6 +46,17 @@ namespace delta::platform::os
 
         __cpuidex(cpuinfo, 7, 0);
         g_context.cpu.hasAVX2 = (cpuinfo[1] & (1 << 5)) != 0;
+
+        __cpuid(cpuinfo, 0x80000000);
+        if (cpuinfo[0] >= 0x80000004)
+        {
+            BrandStringCall* c = reinterpret_cast<BrandStringCall*>(g_context.cpu.brandString);
+            __cpuid(c->c1, 0x80000002);
+            __cpuid(c->c2, 0x80000003);
+            __cpuid(c->c3, 0x80000004);
+        }
+        else
+            memcpy(g_context.cpu.brandString, BrandStringCall::UNSPECIFIED_VALUE, sizeof(BrandStringCall::UNSPECIFIED_VALUE));
     }
 
     void Initialize()
@@ -60,6 +80,9 @@ namespace delta::platform::os
     }
 
     const Context* getContext() noexcept { return &g_context; }
+
+    static_assert(sizeof(BrandStringCall) <= sizeof(g_context.cpu.brandString));
+    static_assert(sizeof(BrandStringCall::UNSPECIFIED_VALUE) <= sizeof(g_context.cpu.brandString));
 }
 
 #endif

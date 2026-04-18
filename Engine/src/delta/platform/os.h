@@ -26,6 +26,7 @@ namespace delta::platform::os
         struct
         {
             char manufacturerId[13];
+            char brandString[sizeof(int) * 4 * 3 + 1];
             uint32_t processorCount;
             bool hasAVX2;
         } cpu;

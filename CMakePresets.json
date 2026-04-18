@@ -10,7 +10,7 @@
          "name": "cfg-win64-debug",
          "displayName": "Win64",
          "generator": "Ninja",
-         "binaryDir": "${sourceDir}/build/windows-vs",
+         "binaryDir": "${sourceDir}/build/windows-debug",
          "cacheVariables": {
             "CMAKE_BUILD_TYPE": "Debug"
          },
