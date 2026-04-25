@@ -24,15 +24,25 @@ function(setup_game GAME_TARGET)
 
    target_link_libraries(${GAME_TARGET} PRIVATE ProjectDelta)
 
+   set(GAME_LIBRARY "$<TARGET_FILE:${GAME_TARGET}>") 
+   set(GAME_ENGINE_LIBRARY "$<TARGET_FILE_DIR:${GAME_TARGET}>/$<TARGET_FILE_NAME:ProjectDelta>")
+   set(GAME_LAUNCHER_EXECUTABLE "$<TARGET_FILE_DIR:${GAME_TARGET}>/$<TARGET_FILE_NAME:DeltaLauncher>")
+
    add_custom_command(TARGET ${GAME_TARGET} POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:ProjectDelta>" "$<TARGET_FILE_DIR:${GAME_TARGET}>/$<TARGET_FILE_NAME:ProjectDelta>"
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:DeltaLauncher>" "$<TARGET_FILE_DIR:${GAME_TARGET}>/$<TARGET_FILE_NAME:DeltaLauncher>"
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:ProjectDelta>" ${GAME_ENGINE_LIBRARY}
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:DeltaLauncher>" ${GAME_LAUNCHER_EXECUTABLE}
       COMMENT "Copying engine and game launcher to ${GAME_TARGET}'s bin directory..."
    )
 
    if (MSVC)
       target_compile_definitions(${GAME_TARGET} PRIVATE DLT_GAME_EXPORT)
       target_compile_options(${GAME_TARGET} PRIVATE /Zi)
+
+      set_target_properties(${GAME_TARGET} PROPERTIES
+         VS_DEBUGGER_COMMAND "${GAME_LAUNCHER_EXECUTABLE}"
+         VS_DEBUGGER_COMMAND_ARGUMENTS "${GAME_LIBRARY}"
+         VS_DEBUGGER_WORKING_DIRECTORY "${GAME_BIN_DIR}"
+      )
    endif()
 
    add_custom_target("Run${GAME_TARGET}"

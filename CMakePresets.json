@@ -9,7 +9,7 @@
       {
          "name": "cfg-win64-debug",
          "displayName": "Win64",
-         "generator": "Ninja",
+         "generator": "Visual Studio 18 2026",
          "binaryDir": "${sourceDir}/build/windows-debug",
          "cacheVariables": {
             "CMAKE_BUILD_TYPE": "Debug"
