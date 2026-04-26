@@ -24,6 +24,8 @@ function(setup_game GAME_TARGET)
 
    target_link_libraries(${GAME_TARGET} PRIVATE ProjectDelta)
 
+   add_dependencies(${GAME_TARGET} ProjectDelta DeltaLauncher)
+
    set(GAME_LIBRARY "$<TARGET_FILE:${GAME_TARGET}>") 
    set(GAME_ENGINE_LIBRARY "$<TARGET_FILE_DIR:${GAME_TARGET}>/$<TARGET_FILE_NAME:ProjectDelta>")
    set(GAME_LAUNCHER_EXECUTABLE "$<TARGET_FILE_DIR:${GAME_TARGET}>/$<TARGET_FILE_NAME:DeltaLauncher>")
@@ -44,11 +46,4 @@ function(setup_game GAME_TARGET)
          VS_DEBUGGER_WORKING_DIRECTORY "${GAME_BIN_DIR}"
       )
    endif()
-
-   add_custom_target("Run${GAME_TARGET}"
-      COMMAND ${CMAKE_COMMAND} -E echo "Launching game"
-      COMMAND ./$<TARGET_FILE_NAME:DeltaLauncher> $<TARGET_FILE:${GAME_TARGET}>
-      DEPENDS ${GAME_TARGET} ProjectDelta DeltaLauncher
-      WORKING_DIRECTORY ${GAME_BIN_DIR}
-   )
 endfunction()

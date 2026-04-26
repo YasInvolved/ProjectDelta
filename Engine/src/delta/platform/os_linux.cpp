@@ -15,6 +15,7 @@
  */
 
 #ifdef __linux__
+#error "Linux API is currently under maintanance and is not available for a short while"
 
 #include <delta/platform/os.h>
 

@@ -15,8 +15,11 @@
  */
 
 #include <delta/core/engine.h>
+#include <delta/platform/os.h>
 
 #include <iostream>
+
+#define STDOUT_BOOL_FORMAT(x) (x ? "true" : "false")
 
 #ifdef WIN32
     #ifdef DLT_GAME_EXPORT
@@ -28,11 +31,25 @@
     #define GAME_API
 #endif
 
+using OSInfo = delta::platform::OSInfo;
+
 extern "C"
 {
     void GAME_API Game_OnInit(delta::Engine::Context* context)
     {
+        const OSInfo* info = delta::platform::getOSInfo();
+
         std::cout << "Initializing game\n";
+        std::cout << "System Info:\n";
+        std::cout <<
+            "\tOS Page Size: " << info->osPageSize << " bytes\n" <<
+            "\tCPU Manufacturer: " << info->cpuManufacturerId << "\n" <<
+            "\tCPU Model: " << info->cpuBrandString << "\n" <<
+            "\tAVX2 Available: " << STDOUT_BOOL_FORMAT(info->cpuHasAVX2) << "\n" <<
+            "\tAVX512 Foundation Available: " << STDOUT_BOOL_FORMAT(info->cpuHasAVX512f) << "\n" <<
+            "\tAVX512 Conflict Detection Available: " << STDOUT_BOOL_FORMAT(info->cpuHasAVX512cd) << "\n" <<
+            "\tAVX512 Exponential and Reciprocal Available: " << STDOUT_BOOL_FORMAT(info->cpuHasAVX512er) << "\n" <<
+            "\tAVX512 Prefetch Available: " << STDOUT_BOOL_FORMAT(info->cpuHasAVX512pf) << "\n";
     }
 
     void GAME_API Game_OnUpdate(delta::Engine::Context* context)

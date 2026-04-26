@@ -17,22 +17,12 @@
 #include <iostream>
 
 #include <delta/core/engine.h>
-#include <delta/platform/os.h>
+#include <delta/platform/os_internal.h>
 
 void delta::Engine::Initialize(Context& context)
 {
     context.isRunning = true;
-    delta::platform::os::Initialize();
-
-    const auto* sysCtx = delta::platform::os::getContext();
-    std::cout <<
-        "[DeltaEngine] OS Page size: " << sysCtx->config.osPageSize << '\n' <<
-        "[DeltaEngine] Total RAM: " << sysCtx->memory.totalRam << " MB\n" <<
-        "[DeltaEngine] Available RAM: " << sysCtx->memory.freeRam << " MB\n" <<
-        "[DeltaEngine] CPU VendorID: " << sysCtx->cpu.manufacturerId << '\n' <<
-        "[DeltaEngine] CPU Brand String: " << sysCtx->cpu.brandString << '\n' <<
-        "[DeltaEngine] CPU Count: " << sysCtx->cpu.processorCount << '\n' <<
-        "[DeltaEngine] AVX2 Support: " << (sysCtx->cpu.hasAVX2 ? "true" : "false") << '\n';
+    delta::platform::Initialize();
 }
 
 void delta::Engine::Shutdown(Context& context)

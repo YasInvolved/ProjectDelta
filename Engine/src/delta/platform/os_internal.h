@@ -16,33 +16,16 @@
 
 #pragma once
 
-#include <cstddef>
-#include <cstdint>
-
-namespace delta::platform::os
+namespace delta::platform
 {
-    struct Context
+    struct BrandStringCall
     {
-        struct
-        {
-            char manufacturerId[13];
-            char brandString[sizeof(int) * 4 * 3 + 1];
-            uint32_t processorCount;
-            bool hasAVX2;
-        } cpu;
+        int c1[4];
+        int c2[4];
+        int c3[4];
 
-        struct
-        {
-            uint64_t totalRam;
-            uint64_t freeRam;
-        } memory;
-
-        struct
-        {
-            uint32_t osPageSize;
-        } config;
+        static constexpr char UNSPECIFIED_VALUE[] = "(unspecified)";
     };
 
     void Initialize();
-    const Context* getContext() noexcept;
 }
