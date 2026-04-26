@@ -19,6 +19,8 @@
 #include <delta/core/engine.h>
 #include <delta/platform/os_internal.h>
 
+static constexpr size_t TEST_RESERVATION_SIZE = 400ull * 1024ull * 1024ull;
+
 void delta::Engine::Initialize(Context& context)
 {
     context.isRunning = true;
@@ -27,5 +29,4 @@ void delta::Engine::Initialize(Context& context)
 
 void delta::Engine::Shutdown(Context& context)
 {
-    // shutdown
 }

@@ -98,6 +98,24 @@ namespace delta::platform
         g_osInfo.cpuCoreCount = info.dwNumberOfProcessors;
     }
 
+    void* ReserveMemory(size_t reservationSize)
+    {
+        // we don't allow accessing uncommited memory
+        void* ptr = VirtualAlloc(nullptr, reservationSize, MEM_RESERVE, PAGE_NOACCESS);
+        return ptr;
+    }
+
+    void* CommitMemory(void* mem, size_t commitSize)
+    {
+        void* ptr = VirtualAlloc(mem, commitSize, MEM_COMMIT, PAGE_READWRITE);
+        return ptr;
+    }
+
+    void ReleaseMemory(void* ptr)
+    {
+        VirtualFree(ptr, 0, MEM_RELEASE);
+    }
+
     const OSInfo* getOSInfo() noexcept { return &g_osInfo; }
 }
 

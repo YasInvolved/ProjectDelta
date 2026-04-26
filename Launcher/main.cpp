@@ -150,7 +150,8 @@ int main(int argc, char** argv)
     
     delta::Engine::Initialize(g_context);
 
-    Game game(argv[1]);
+    const char* libPath = argv[1];
+    Game game(libPath);
     if (!game.load())
     {
         std::cout << "[DeltaLauncher] Failed to load the game.\n";

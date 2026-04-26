@@ -28,4 +28,7 @@ namespace delta::platform
     };
 
     void Initialize();
+    void* ReserveMemory(size_t reservationSize);
+    void* CommitMemory(void* mem, size_t commitSize);
+    void ReleaseMemory(void* mem);
 }
