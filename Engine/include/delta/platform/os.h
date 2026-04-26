@@ -12,6 +12,7 @@ namespace delta::platform
         // cpu
         char cpuManufacturerId[13];
         char cpuBrandString[sizeof(int) * 12 + 1];
+        const char* cpuArchitecture;
         uint32_t cpuCoreCount;
         bool cpuHasAVX2;
         bool cpuHasAVX512f;

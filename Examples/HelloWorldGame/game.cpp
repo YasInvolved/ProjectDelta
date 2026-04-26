@@ -43,6 +43,7 @@ extern "C"
         std::cout << "System Info:\n";
         std::cout <<
             "\tOS Page Size: " << info->osPageSize << " bytes\n" <<
+            "\tCPU Architecture: " << info->cpuArchitecture << "\n" <<
             "\tCPU Manufacturer: " << info->cpuManufacturerId << "\n" <<
             "\tCPU Model: " << info->cpuBrandString << "\n" <<
             "\tAVX2 Available: " << STDOUT_BOOL_FORMAT(info->cpuHasAVX2) << "\n" <<

@@ -27,6 +27,35 @@ namespace delta::platform
 {
     static OSInfo g_osInfo;
 
+    enum CpuArchitecture : WORD
+    {
+        INTEL = 0,
+        ARM = 5,
+        IA64 = 6,
+        AMD64 = 9,
+        ARM64 = 12,
+        UNKNOWN = 0xffff
+    };
+
+    static inline const char* getArchitectureString(WORD arch)
+    {
+        switch (arch)
+        {
+        case INTEL:
+            return "x86";
+        case ARM:
+            return "ARM";
+        case IA64:
+            return "IA64";
+        case AMD64:
+            return "AMD64";
+        case ARM64:
+            return "ARM64";
+        default:
+            return "UNKNOWN";
+        }
+    }
+
     inline static void fetchCpuidValues()
     {
         int cpuinfo[4];
@@ -64,17 +93,9 @@ namespace delta::platform
         SYSTEM_INFO info;
         GetSystemInfo(&info);
 
+        g_osInfo.cpuArchitecture = getArchitectureString(static_cast<CpuArchitecture>(info.wProcessorArchitecture)); // safe, points to static string literal
         g_osInfo.osPageSize = info.dwPageSize;
         g_osInfo.cpuCoreCount = info.dwNumberOfProcessors;
-
-        //MEMORYSTATUSEX statex{};
-        //statex.dwLength = sizeof(statex);
-
-        //if (GlobalMemoryStatusEx(&statex))
-        //{
-        //    g_context.memory.totalRam = statex.ullTotalPhys / (1 << 20);
-        //    g_context.memory.freeRam = statex.ullAvailPhys / (1 << 20);
-        //}
     }
 
     const OSInfo* getOSInfo() noexcept { return &g_osInfo; }
