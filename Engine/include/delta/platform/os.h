@@ -16,11 +16,6 @@
 
 #pragma once
 
-#include <cstdint>
-#include <cstddef>
-
-#include <delta/definitions.h>
-
 namespace delta::platform
 {
     struct OSInfo
@@ -40,5 +35,12 @@ namespace delta::platform
         uint32_t osPageSize;
     };
 
+    struct MemoryStatus
+    {
+        uint64_t physicalInstalled;
+        uint64_t physicalFree;
+    };
+
     DLT_API const OSInfo* getOSInfo() noexcept;
+    DLT_API MemoryStatus getMemoryStatus();
 }

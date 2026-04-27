@@ -55,6 +55,18 @@ extern "C"
 
     void GAME_API Game_OnUpdate(delta::Engine::Context* context)
     {
+        char input;
+        std::cout << "\"1\" to continue and \"2\" to exit: ";
+        std::cin >> input;
+
+        switch (input)
+        {
+        case '1':
+            break;
+        case '2':
+            context->isRunning = false;
+            break;
+        }
     }
 
     void GAME_API Game_OnShutdown(delta::Engine::Context* context)

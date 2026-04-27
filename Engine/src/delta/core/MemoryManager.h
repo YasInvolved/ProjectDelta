@@ -16,20 +16,23 @@
 
 #pragma once
 
-namespace delta::platform
+namespace delta::core::MemoryManager
 {
-    struct BrandStringCall
-    {
-        int c1[4];
-        int c2[4];
-        int c3[4];
+    using atomic_u64_t = std::atomic<uint64_t>;
 
-        static constexpr char UNSPECIFIED_VALUE[] = "(unspecified)";
+    struct MemoryState
+    {
+        void* reservedBase;
+        uint64_t totalVirtualSize;
+        uint64_t pageSize;
+
+        uint64_t bitmaskCount;
+        atomic_u64_t* commitedBitmask;
+
+        uint64_t maxCommitBudgetBytes;
+        atomic_u64_t currentlyCommitedBytes;
     };
 
-    void Initialize();
-    void* ReserveMemory(size_t reservationSize);
-    void* CommitMemory(void* mem, size_t commitSize);
-    void DecommitMemory(void* mem, size_t decommitSize);
-    void ReleaseMemory(void* mem);
+    void InitEngineMemory();
+    void ShutdownEngineMemory();
 }

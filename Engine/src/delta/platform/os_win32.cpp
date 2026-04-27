@@ -111,12 +111,31 @@ namespace delta::platform
         return ptr;
     }
 
+    void DecommitMemory(void* mem, size_t decommitSize)
+    {
+        VirtualFree(mem, decommitSize, MEM_DECOMMIT);
+    }
+
     void ReleaseMemory(void* ptr)
     {
         VirtualFree(ptr, 0, MEM_RELEASE);
     }
 
     const OSInfo* getOSInfo() noexcept { return &g_osInfo; }
+
+    MemoryStatus getMemoryStatus()
+    {
+        MemoryStatus status{};
+
+        MEMORYSTATUSEX wstatus{ .dwLength = sizeof(MEMORYSTATUSEX) };
+        if (GlobalMemoryStatusEx(&wstatus))
+        {
+            status.physicalInstalled = wstatus.ullTotalPhys;
+            status.physicalFree = wstatus.ullAvailPhys;
+        }
+
+        return status;
+    }
 }
 
 #endif

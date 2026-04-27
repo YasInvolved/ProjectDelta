@@ -18,15 +18,16 @@
 
 #include <delta/core/engine.h>
 #include <delta/platform/os_internal.h>
-
-static constexpr size_t TEST_RESERVATION_SIZE = 400ull * 1024ull * 1024ull;
+#include <delta/core//MemoryManager.h>
 
 void delta::Engine::Initialize(Context& context)
 {
     context.isRunning = true;
     delta::platform::Initialize();
+    delta::core::MemoryManager::InitEngineMemory();
 }
 
 void delta::Engine::Shutdown(Context& context)
 {
+    delta::core::MemoryManager::ShutdownEngineMemory();
 }
