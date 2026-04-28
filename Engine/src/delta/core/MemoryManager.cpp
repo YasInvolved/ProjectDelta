@@ -30,38 +30,38 @@ namespace os = delta::platform;
 // ct constants
 static constexpr uint64_t VIRTUAL_MEMORY_RESERVATION = (1ull << 35ull); // 32gb
 
-static MemoryState memoryState{};
+static MemoryState g_memoryState{};
 
 void MemoryManager::InitEngineMemory()
 {
     {
         const auto* osInfo = os::getOSInfo();
         const auto memStatus = os::getMemoryStatus();
-        memoryState.pageSize = osInfo->osPageSize;
-        memoryState.maxCommitBudgetBytes = (memStatus.physicalInstalled / 100) * 7; // ~70% of total capacity
-        memoryState.totalVirtualSize = VIRTUAL_MEMORY_RESERVATION;
+        g_memoryState.pageSize = osInfo->osPageSize;
+        g_memoryState.maxCommitBudgetBytes = (memStatus.physicalInstalled / 100) * 7; // ~70% of total capacity
+        g_memoryState.totalVirtualSize = VIRTUAL_MEMORY_RESERVATION;
     }
 
-    uint64_t totalPages = VIRTUAL_MEMORY_RESERVATION / memoryState.pageSize;
-    memoryState.bitmaskCount = (totalPages + 63) / 64;
+    uint64_t totalPages = VIRTUAL_MEMORY_RESERVATION / g_memoryState.pageSize;
+    g_memoryState.bitmaskCount = (totalPages + 63) / 64;
 
-    uint64_t bitmaskBytes = memoryState.bitmaskCount * sizeof(atomic_u64_t);
+    uint64_t bitmaskBytes = g_memoryState.bitmaskCount * sizeof(atomic_u64_t);
 
     void* rawBitmaskPtr = os::ReserveMemory(bitmaskBytes);
     rawBitmaskPtr = os::CommitMemory(rawBitmaskPtr, bitmaskBytes);
     assert(rawBitmaskPtr != nullptr); // failed to allocate metadata
 
-    memoryState.commitedBitmask = static_cast<atomic_u64_t*>(rawBitmaskPtr);
-    for (uint64_t i = 0; i < memoryState.bitmaskCount; i++)
+    g_memoryState.commitedBitmask = static_cast<atomic_u64_t*>(rawBitmaskPtr);
+    for (uint64_t i = 0; i < g_memoryState.bitmaskCount; i++)
     {
-        new (&memoryState.commitedBitmask[i]) atomic_u64_t(~0ull);
+        new (&g_memoryState.commitedBitmask[i]) atomic_u64_t(~0ull);
     }
 
-    memoryState.reservedBase = os::ReserveMemory(memoryState.totalVirtualSize);
-    assert(memoryState.reservedBase != nullptr); // failed to reserve addresses for allocations
+    g_memoryState.reservedBase = os::ReserveMemory(g_memoryState.totalVirtualSize);
+    assert(g_memoryState.reservedBase != nullptr); // failed to reserve addresses for allocations
 }
 
-static void* allocatePageLockFree(MemoryState* state)
+void* MemoryManager::AllocatePageLockFree(MemoryState* state)
 {
     uint64_t currentRAM = state->currentlyCommitedBytes.load(std::memory_order_relaxed);
     while (true)
@@ -98,7 +98,7 @@ static void* allocatePageLockFree(MemoryState* state)
     }
 }
 
-static void freePage(MemoryState* state, void* ptr)
+void MemoryManager::freePage(MemoryState* state, void* ptr)
 {
     if (!ptr)
         return;
@@ -116,6 +116,8 @@ static void freePage(MemoryState* state, void* ptr)
 
 void MemoryManager::ShutdownEngineMemory()
 {
-    os::ReleaseMemory(memoryState.reservedBase);
-    os::ReleaseMemory(memoryState.commitedBitmask);
+    os::ReleaseMemory(g_memoryState.reservedBase);
+    os::ReleaseMemory(g_memoryState.commitedBitmask);
 }
+
+const MemoryState* MemoryManager::GetMemoryState() noexcept { return &g_memoryState; }

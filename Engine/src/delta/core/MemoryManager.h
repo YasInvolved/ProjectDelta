@@ -35,4 +35,7 @@ namespace delta::core::MemoryManager
 
     void InitEngineMemory();
     void ShutdownEngineMemory();
+    void* AllocatePageLockFree(MemoryState* state);
+    void freePage(MemoryState* state, void* ptr);
+    const MemoryState* GetMemoryState() noexcept;
 }
