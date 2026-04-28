@@ -20,12 +20,14 @@ add_library(ProjectDelta SHARED
    "src/delta/platform/os_win32.cpp"
    "src/delta/platform/os_linux.cpp"
    "include/delta/platform/os.h"
-   
-   
    "include/delta/pch.h"
    "src/delta/pch.h"
    "src/delta/pch.cpp"
- "src/delta/core/MemoryManager.h" "src/delta/core/MemoryManager.cpp")
+   "src/delta/core/MemoryManager.h"
+   "src/delta/core/MemoryManager.cpp"
+   "src/delta/core/FrameAllocator.h"
+   "src/delta/core/FrameAllocator.cpp"
+)
 
 target_compile_definitions(ProjectDelta
    PRIVATE DLT_EXPORT_SYMBOLS
