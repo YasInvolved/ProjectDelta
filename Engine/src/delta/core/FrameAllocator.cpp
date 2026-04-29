@@ -22,7 +22,7 @@
 using FrameAllocator = delta::core::FrameAllocator;
 using Node = FrameAllocator::Node;
 
-static inline void* allocate(FrameAllocator* allocator, uint64_t size, uint64_t alignedOffset)
+static DLT_FORCE_INLINE void* allocate(FrameAllocator* allocator, uint64_t size, uint64_t alignedOffset)
 {
     void* result = reinterpret_cast<uint8_t*>(allocator->current) + alignedOffset;
     allocator->offset = size + alignedOffset;
@@ -77,4 +77,15 @@ void delta::core::FrameAllocator_Flush(FrameAllocator* allocator)
 {
     allocator->current = allocator->head;
     allocator->offset = sizeof(Node);
+}
+
+void delta::core::FrameAllocator_Shutdown(FrameAllocator* allocator)
+{
+    Node* current = allocator->head;
+    while (current != nullptr)
+    {
+        Node* n = current->next;
+        MemoryManager::freePage(allocator->memoryState, current);
+        current = n;
+    }
 }

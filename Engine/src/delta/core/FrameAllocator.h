@@ -36,4 +36,5 @@ namespace delta::core
     void FrameAllocator_Init(FrameAllocator* allocator, MemoryManager::MemoryState* memState);
     void* FrameAllocator_Allocate(FrameAllocator* allocator, uint64_t size, uint64_t alignment = 8);
     void FrameAllocator_Flush(FrameAllocator* allocator);
+    void FrameAllocator_Shutdown(FrameAllocator* allocator);
 }
