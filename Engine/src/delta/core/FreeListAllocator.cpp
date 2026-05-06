@@ -30,8 +30,8 @@ DLT_FORCE_INLINE void* AllocatePageForBucket(FreeListAllocator* allocator, uint3
     void* rawPage = MemoryManager::AllocatePageLockFree(allocator->memState);
 
     BucketMetadata* meta = reinterpret_cast<BucketMetadata*>(rawPage);
+    meta->magic = BucketMetadata::MAGIC_VALUE;
     meta->bucketIx = bucketIx;
-    meta->bitmask = 0;
 
     uint64_t numChunks = allocator->remaining / size;
     uint8_t* walker = static_cast<uint8_t*>(rawPage) + sizeof(BucketMetadata);
@@ -93,6 +93,8 @@ void delta::core::FreeList_Free(FreeListAllocator* allocator, void* ptr)
     uintptr_t basePage = address & ~0xfffull;
 
     const BucketMetadata* metadata = reinterpret_cast<const BucketMetadata*>(basePage);
+    assert(metadata->magic == BucketMetadata::MAGIC_VALUE);
+
     uint32_t bucketIx = metadata->bucketIx;
     Node* freeNode = reinterpret_cast<Node*>(ptr);
     freeNode->next = allocator->buckets[bucketIx];

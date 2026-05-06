@@ -30,8 +30,11 @@ namespace delta::core
         struct Node { Node* next; };
         struct alignas(16) BucketMetadata
         {
+            static constexpr char MAGIC_VALUE_STR[sizeof(uint64_t)] = "DLT_SFA";
+            static constexpr uint64_t MAGIC_VALUE = std::bit_cast<uint64_t>(MAGIC_VALUE_STR);
+
+            uint64_t magic;
             uint32_t bucketIx;
-            uint32_t bitmask;
         };
 
         MemoryManager::MemoryState* memState;
