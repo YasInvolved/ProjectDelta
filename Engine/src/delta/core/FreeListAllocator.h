@@ -28,12 +28,18 @@ namespace delta::core
         static constexpr uint32_t BUCKET_COUNT = 7ull; // log2(2048) - log2(16) = 7, calculated manually for simplicity
 
         struct Node { Node* next; };
+        struct alignas(16) BucketMetadata
+        {
+            uint32_t bucketIx;
+            uint32_t bitmask;
+        };
 
         MemoryManager::MemoryState* memState;
 
         Node* buckets[BUCKET_COUNT];
 
         uint64_t pageSize;
+        uint64_t remaining; // pageSize - metadata size
     };
 
     void FreeList_Init(FreeListAllocator* allocator, MemoryManager::MemoryState* memState);

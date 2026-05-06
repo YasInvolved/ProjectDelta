@@ -23,13 +23,18 @@ using namespace delta::core;
 
 using MemoryState = MemoryManager::MemoryState;
 using Node = FreeListAllocator::Node;
+using BucketMetadata = FreeListAllocator::BucketMetadata;
 
 DLT_FORCE_INLINE void* AllocatePageForBucket(FreeListAllocator* allocator, uint32_t bucketIx, uint64_t size)
 {
     void* rawPage = MemoryManager::AllocatePageLockFree(allocator->memState);
 
-    uint64_t numChunks = allocator->pageSize / size;
-    uint8_t* walker = static_cast<uint8_t*>(rawPage);
+    BucketMetadata* meta = reinterpret_cast<BucketMetadata*>(rawPage);
+    meta->bucketIx = bucketIx;
+    meta->bitmask = 0;
+
+    uint64_t numChunks = allocator->remaining / size;
+    uint8_t* walker = static_cast<uint8_t*>(rawPage) + sizeof(BucketMetadata);
 
     Node* head = reinterpret_cast<Node*>(walker);
     Node* current = head;
@@ -50,6 +55,7 @@ void delta::core::FreeList_Init(FreeListAllocator* allocator, MemoryState* memSt
 {
     allocator->memState = memState;
     allocator->pageSize = memState->pageSize;
+    allocator->remaining = memState->pageSize - sizeof(BucketMetadata);
 }
 
 void* delta::core::FreeList_Allocate(FreeListAllocator* allocator, uint64_t size, uint64_t alignment)
