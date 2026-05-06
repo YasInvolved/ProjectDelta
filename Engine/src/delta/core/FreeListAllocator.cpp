@@ -48,6 +48,7 @@ DLT_FORCE_INLINE void* AllocatePageForBucket(FreeListAllocator* allocator, uint3
     }
 
     current->next = nullptr;
+    allocator->buckets[bucketIx] = head;
     return head;
 }
 
@@ -81,4 +82,19 @@ void* delta::core::FreeList_Allocate(FreeListAllocator* allocator, uint64_t size
     }
 
     return MemoryManager::AllocatePageLockFree(allocator->memState);
+}
+
+void delta::core::FreeList_Free(FreeListAllocator* allocator, void* ptr)
+{
+    if (!ptr)
+        return;
+
+    uintptr_t address = reinterpret_cast<uintptr_t>(ptr);
+    uintptr_t basePage = address & ~0xfffull;
+
+    const BucketMetadata* metadata = reinterpret_cast<const BucketMetadata*>(basePage);
+    uint32_t bucketIx = metadata->bucketIx;
+    Node* freeNode = reinterpret_cast<Node*>(ptr);
+    freeNode->next = allocator->buckets[bucketIx];
+    allocator->buckets[bucketIx] = freeNode;
 }
