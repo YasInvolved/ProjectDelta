@@ -120,4 +120,4 @@ void MemoryManager::ShutdownEngineMemory()
     os::ReleaseMemory(g_memoryState.commitedBitmask);
 }
 
-const MemoryState* MemoryManager::GetMemoryState() noexcept { return &g_memoryState; }
+MemoryState* MemoryManager::GetMemoryState() noexcept { return &g_memoryState; }
