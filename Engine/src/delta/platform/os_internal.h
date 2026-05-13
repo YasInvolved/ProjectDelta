@@ -32,4 +32,23 @@ namespace delta::platform
     void* CommitMemory(void* mem, size_t commitSize);
     void DecommitMemory(void* mem, size_t decommitSize);
     void ReleaseMemory(void* mem);
+
+    struct OSThreadHandle;
+    struct OSSemaphoreHandle;
+
+    struct ThreadCreationInfo
+    {
+        void (*entryPoint)(void*);
+        void* userData;
+        uint32_t coreAffinityMask;
+        const char* debugName;
+    };
+
+    OSThreadHandle* CreateEngineThread(const ThreadCreationInfo& info);
+    void DestroyEngineThread(OSThreadHandle* thread);
+    void SetThreadAffinity(OSThreadHandle* thread, uint32_t mask);
+
+    OSSemaphoreHandle* CreateEngineSemaphore(uint32_t initialCount);
+    void WaitOnSemaphore(OSSemaphoreHandle* sem);
+    void SignalSemaphore(OSSemaphoreHandle* sem, uint32_t count);
 }

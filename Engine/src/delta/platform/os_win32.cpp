@@ -56,6 +56,24 @@ namespace delta::platform
         }
     }
 
+    struct OSThreadHandle
+    {
+        HANDLE handle;
+        DWORD osThreadId;
+    };
+
+    struct OSSemaphoreHandle
+    {
+        HANDLE handle;
+    };
+
+    static DWORD WINAPI ThreadWindowsEntry(LPVOID param)
+    {
+        auto* info = static_cast<ThreadCreationInfo*>(param);
+        info->entryPoint(info->userData);
+        return 0;
+    }
+
     inline static void fetchCpuidValues()
     {
         int cpuinfo[4];
@@ -135,6 +153,66 @@ namespace delta::platform
         }
 
         return status;
+    }
+
+    OSThreadHandle* CreateEngineThread(const ThreadCreationInfo& info)
+    {
+        OSThreadHandle* thread = new OSThreadHandle(); // TODO: custom global allocator, or living on the main thread
+        thread->handle = CreateThread(
+            nullptr, 0,
+            ThreadWindowsEntry,
+            (void*)&info,
+            0,
+            &thread->osThreadId
+        );
+
+        assert(thread->handle != 0);
+
+        if (info.debugName) {
+            // TODO: Convert to wide string
+        }
+
+        if (info.coreAffinityMask > 0) {
+            SetThreadAffinityMask(thread->handle, info.coreAffinityMask);
+        }
+
+        return thread;
+    }
+
+    void DestroyEngineThread(OSThreadHandle* thread)
+    {
+        if (!thread)
+            return;
+
+        WaitForSingleObject(thread->handle, INFINITE);
+        CloseHandle(thread->handle);
+
+        delete thread;
+    }
+
+    void SetThreadAffinity(OSThreadHandle* thread, uint32_t mask)
+    {
+        if (!thread)
+            return;
+
+        SetThreadAffinityMask(thread->handle, mask);
+    }
+
+    OSSemaphoreHandle* CreateEngineSemaphore(uint32_t initialCount)
+    {
+        OSSemaphoreHandle* sem = new OSSemaphoreHandle();
+        sem->handle = CreateSemaphoreA(nullptr, initialCount, LONG_MAX, nullptr);
+        return sem;
+    }
+
+    void WaitOnSemaphore(OSSemaphoreHandle* sem)
+    {
+        WaitForSingleObject(sem->handle, INFINITE);
+    }
+
+    void SignalSemaphore(OSSemaphoreHandle* sem, uint32_t count)
+    {
+        ReleaseSemaphore(sem->handle, count, nullptr);
     }
 }
 
