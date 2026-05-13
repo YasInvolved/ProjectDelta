@@ -38,4 +38,6 @@ namespace delta::core
 
     void FreeList_Init(FreeListAllocator* allocator, MemoryManager::MemoryState* memState);
     void* FreeList_Allocate(FreeListAllocator* allocator, uint64_t size, uint64_t alignment);
+    void FreeList_Free(FreeListAllocator* allocator, void* ptr);
+    void FreeList_Destroy(FreeListAllocator* allocator);
 }

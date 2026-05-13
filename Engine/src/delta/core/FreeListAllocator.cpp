@@ -31,10 +31,12 @@ DLT_FORCE_INLINE void* AllocatePageForBucket(FreeListAllocator* allocator, uint3
     uint64_t numChunks = allocator->pageSize / size;
     uint8_t* walker = static_cast<uint8_t*>(rawPage);
 
+    // first step
     Node* head = reinterpret_cast<Node*>(walker);
     Node* current = head;
 
-    for (uint32_t i = 0; i < numChunks; i++)
+    // next n - 1 steps
+    for (uint32_t i = 0; i < numChunks - 2; i++)
     {
         walker += size;
         Node* next = reinterpret_cast<Node*>(walker);
@@ -42,8 +44,9 @@ DLT_FORCE_INLINE void* AllocatePageForBucket(FreeListAllocator* allocator, uint3
         current = next;
     }
 
-    current->next = nullptr;
-    return head;
+    walker += size;
+    Node* next = reinterpret_cast<Node*>(walker);
+    return next;
 }
 
 void delta::core::FreeList_Init(FreeListAllocator* allocator, MemoryState* memState)
@@ -75,4 +78,14 @@ void* delta::core::FreeList_Allocate(FreeListAllocator* allocator, uint64_t size
     }
 
     return MemoryManager::AllocatePageLockFree(allocator->memState);
+}
+
+void delta::core::FreeList_Free(FreeListAllocator* allocator, void* ptr)
+{
+
+}
+
+void delta::core::FreeList_Destroy(FreeListAllocator* allocator)
+{
+
 }
