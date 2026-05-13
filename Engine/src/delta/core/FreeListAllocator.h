@@ -28,24 +28,16 @@ namespace delta::core
         static constexpr uint32_t BUCKET_COUNT = 7ull; // log2(2048) - log2(16) = 7, calculated manually for simplicity
 
         struct Node { Node* next; };
-        struct alignas(16) BucketMetadata
-        {
-            static constexpr char MAGIC_VALUE_STR[sizeof(uint64_t)] = "DLT_SFA";
-            static constexpr uint64_t MAGIC_VALUE = std::bit_cast<uint64_t>(MAGIC_VALUE_STR);
-
-            uint64_t magic;
-            uint32_t bucketIx;
-        };
 
         MemoryManager::MemoryState* memState;
 
         Node* buckets[BUCKET_COUNT];
 
         uint64_t pageSize;
-        uint64_t remaining; // pageSize - metadata size
     };
 
     void FreeList_Init(FreeListAllocator* allocator, MemoryManager::MemoryState* memState);
     void* FreeList_Allocate(FreeListAllocator* allocator, uint64_t size, uint64_t alignment);
     void FreeList_Free(FreeListAllocator* allocator, void* ptr);
+    void FreeList_Destroy(FreeListAllocator* allocator);
 }

@@ -23,23 +23,20 @@ using namespace delta::core;
 
 using MemoryState = MemoryManager::MemoryState;
 using Node = FreeListAllocator::Node;
-using BucketMetadata = FreeListAllocator::BucketMetadata;
 
 DLT_FORCE_INLINE void* AllocatePageForBucket(FreeListAllocator* allocator, uint32_t bucketIx, uint64_t size)
 {
     void* rawPage = MemoryManager::AllocatePageLockFree(allocator->memState);
 
-    BucketMetadata* meta = reinterpret_cast<BucketMetadata*>(rawPage);
-    meta->magic = BucketMetadata::MAGIC_VALUE;
-    meta->bucketIx = bucketIx;
+    uint64_t numChunks = allocator->pageSize / size;
+    uint8_t* walker = static_cast<uint8_t*>(rawPage);
 
-    uint64_t numChunks = allocator->remaining / size;
-    uint8_t* walker = static_cast<uint8_t*>(rawPage) + sizeof(BucketMetadata);
-
+    // first step
     Node* head = reinterpret_cast<Node*>(walker);
     Node* current = head;
 
-    for (uint32_t i = 0; i < numChunks; i++)
+    // next n - 1 steps
+    for (uint32_t i = 0; i < numChunks - 2; i++)
     {
         walker += size;
         Node* next = reinterpret_cast<Node*>(walker);
@@ -47,16 +44,15 @@ DLT_FORCE_INLINE void* AllocatePageForBucket(FreeListAllocator* allocator, uint3
         current = next;
     }
 
-    current->next = nullptr;
-    allocator->buckets[bucketIx] = head;
-    return head;
+    walker += size;
+    Node* next = reinterpret_cast<Node*>(walker);
+    return next;
 }
 
 void delta::core::FreeList_Init(FreeListAllocator* allocator, MemoryState* memState)
 {
     allocator->memState = memState;
     allocator->pageSize = memState->pageSize;
-    allocator->remaining = memState->pageSize - sizeof(BucketMetadata);
 }
 
 void* delta::core::FreeList_Allocate(FreeListAllocator* allocator, uint64_t size, uint64_t alignment)
@@ -86,17 +82,10 @@ void* delta::core::FreeList_Allocate(FreeListAllocator* allocator, uint64_t size
 
 void delta::core::FreeList_Free(FreeListAllocator* allocator, void* ptr)
 {
-    if (!ptr)
-        return;
 
-    uintptr_t address = reinterpret_cast<uintptr_t>(ptr);
-    uintptr_t basePage = address & ~0xfffull;
+}
 
-    const BucketMetadata* metadata = reinterpret_cast<const BucketMetadata*>(basePage);
-    assert(metadata->magic == BucketMetadata::MAGIC_VALUE);
+void delta::core::FreeList_Destroy(FreeListAllocator* allocator)
+{
 
-    uint32_t bucketIx = metadata->bucketIx;
-    Node* freeNode = reinterpret_cast<Node*>(ptr);
-    freeNode->next = allocator->buckets[bucketIx];
-    allocator->buckets[bucketIx] = freeNode;
 }
