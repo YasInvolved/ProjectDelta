@@ -3,7 +3,7 @@ A performance-first, **data-driven game engine** built from the ground up with a
 
 This project is currently a **work-in-progress,** moving away from standard library abstractions to provide a leaner more transparent development environment.
 
-> ![NOTE]
+> [!NOTE]
 > This engine is in an active state of flux. APIs and memory structures are subject to significant changes as the threading and allocation systems are refined.
 
 ## 🚀 Key Features
