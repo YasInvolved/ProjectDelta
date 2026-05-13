@@ -24,8 +24,8 @@ The engine treats memory as a first-class citizen. Rather than relying on genera
 - **Target Architectures:** amd64 (and arm64 being considered).
 
 ## 🏗 Roadmap
-- [] Finalize Thread API and Task Scheduling.
-- [] Benchmarks
-- [] Implement SIMD math library integrations.
-- [] Expand Memory Profiling tools for real-time heap visualization.
-- [] Integrate a low-level Vulkan/Direct3D 12 rendering abstraction
+- [ ] Finalize Thread API and Task Scheduling.
+- [ ] Benchmarks
+- [ ] Implement SIMD math library integrations.
+- [ ] Expand Memory Profiling tools for real-time heap visualization.
+- [ ] Integrate a low-level Vulkan/Direct3D 12 rendering abstraction
