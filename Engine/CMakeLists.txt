@@ -28,7 +28,11 @@ add_library(ProjectDelta SHARED
    "src/delta/core/FrameAllocator.h"
    "src/delta/core/FrameAllocator.cpp"
    "src/delta/internal_definitions.h"
- "src/delta/core/FreeListAllocator.h" "src/delta/core/FreeListAllocator.cpp")
+   "src/delta/core/FreeListAllocator.h"
+   "src/delta/core/FreeListAllocator.cpp"
+   "src/delta/core/GameWorker.h"
+   "src/delta/core/GameWorker.cpp"
+)
 
 target_compile_definitions(ProjectDelta
    PRIVATE DLT_EXPORT_SYMBOLS

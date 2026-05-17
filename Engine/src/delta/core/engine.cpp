@@ -18,13 +18,15 @@
 
 #include <delta/core/engine.h>
 #include <delta/platform/os_internal.h>
-#include <delta/core//MemoryManager.h>
+#include <delta/core/MemoryManager.h>
+#include <delta/core/GameWorker.h>
 
 void delta::Engine::Initialize(Context& context)
 {
     context.isRunning = true;
     delta::platform::Initialize();
     delta::core::MemoryManager::InitEngineMemory();
+    delta::core::GameWorker_Init();
 }
 
 void delta::Engine::Shutdown(Context& context)
