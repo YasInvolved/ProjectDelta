@@ -16,6 +16,4 @@ namespace delta::core
     };
 
     void GameWorker_Init();
-    uint32_t GameWorker_GetCurrentNumber() noexcept;
-    GameWorker* GameWorker_Create() noexcept;
 }
