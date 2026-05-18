@@ -32,4 +32,5 @@ void delta::Engine::Initialize(Context& context)
 void delta::Engine::Shutdown(Context& context)
 {
     delta::core::MemoryManager::ShutdownEngineMemory();
+    delta::core::GameWorker_Shutdown();
 }

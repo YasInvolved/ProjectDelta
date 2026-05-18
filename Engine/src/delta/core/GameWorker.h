@@ -16,4 +16,5 @@ namespace delta::core
     };
 
     void GameWorker_Init();
+    void GameWorker_Shutdown();
 }
