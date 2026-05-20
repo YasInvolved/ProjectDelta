@@ -23,12 +23,7 @@ add_library(ProjectDelta SHARED
    "include/delta/pch.h"
    "src/delta/pch.h"
    "src/delta/pch.cpp"
-   "src/delta/core/MemoryManager.h"
-   "src/delta/core/MemoryManager.cpp"
-   "src/delta/core/FrameAllocator.h"
-   "src/delta/core/FrameAllocator.cpp"
-   "src/delta/internal_definitions.h"
- "src/delta/core/FreeListAllocator.h" "src/delta/core/FreeListAllocator.cpp")
+)
 
 target_compile_definitions(ProjectDelta
    PRIVATE DLT_EXPORT_SYMBOLS

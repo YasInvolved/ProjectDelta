@@ -18,13 +18,12 @@
 
 namespace delta::platform
 {
-    struct BrandStringCall
-    {
-        int c1[4];
-        int c2[4];
-        int c3[4];
+    struct BrandStringCall;
+    struct Timer_Internal;
 
-        static constexpr char UNSPECIFIED_VALUE[] = "(unspecified)";
+    struct Timer
+    {
+        alignas(8) uint8_t opaqueData[32];
     };
 
     void Initialize();
@@ -32,4 +31,9 @@ namespace delta::platform
     void* CommitMemory(void* mem, size_t commitSize);
     void DecommitMemory(void* mem, size_t decommitSize);
     void ReleaseMemory(void* mem);
+
+    void Timer_Initialize(Timer* timer);
+    int64_t Timer_GetTimestamp();
+    double Timer_TicksToMilliseconds(const Timer* timer, int64_t startTicks, int64_t endTicks);
+    double Timer_TicksToMicroseconds(const Timer* timer, int64_t startTicks, int64_t endTicks);
 }
