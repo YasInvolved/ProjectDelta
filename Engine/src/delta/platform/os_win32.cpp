@@ -154,25 +154,25 @@ namespace delta::platform
             g_osInfo.maxEngineWorkerCount = 1;
     }
 
-    void* ReserveMemory(size_t reservationSize)
+    void* Memory_Reserve(size_t reservationSize)
     {
         // we don't allow accessing uncommited memory
         void* ptr = VirtualAlloc(nullptr, reservationSize, MEM_RESERVE, PAGE_NOACCESS);
         return ptr;
     }
 
-    void* CommitMemory(void* mem, size_t commitSize)
+    void* Memory_Commit(void* mem, size_t commitSize)
     {
         void* ptr = VirtualAlloc(mem, commitSize, MEM_COMMIT, PAGE_READWRITE);
         return ptr;
     }
 
-    void DecommitMemory(void* mem, size_t decommitSize)
+    void Memory_Decommit(void* mem, size_t decommitSize)
     {
         VirtualFree(mem, decommitSize, MEM_DECOMMIT);
     }
 
-    void ReleaseMemory(void* ptr)
+    void Memory_Release(void* ptr)
     {
         VirtualFree(ptr, 0, MEM_RELEASE);
     }

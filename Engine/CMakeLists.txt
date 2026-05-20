@@ -18,11 +18,11 @@ add_library(ProjectDelta SHARED
    "include/delta/definitions.h"
    "src/delta/platform/os_internal.h"
    "src/delta/platform/os_win32.cpp"
-   "src/delta/platform/os_linux.cpp"
    "include/delta/platform/os.h"
    "include/delta/pch.h"
    "src/delta/pch.h"
    "src/delta/pch.cpp"
+   "src/delta/core/EngineTypes.h"
 )
 
 target_compile_definitions(ProjectDelta

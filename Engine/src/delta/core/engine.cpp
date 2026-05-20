@@ -19,6 +19,8 @@
 #include <delta/core/engine.h>
 #include <delta/platform/os_internal.h>
 
+#include "EngineTypes.h"
+
 void delta::Engine::Initialize(Context& context)
 {
     context.isRunning = true;

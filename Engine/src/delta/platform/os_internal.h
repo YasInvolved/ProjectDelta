@@ -27,13 +27,16 @@ namespace delta::platform
     };
 
     void Initialize();
-    void* ReserveMemory(size_t reservationSize);
-    void* CommitMemory(void* mem, size_t commitSize);
-    void DecommitMemory(void* mem, size_t decommitSize);
-    void ReleaseMemory(void* mem);
 
-    void Timer_Initialize(Timer* timer);
+    // Memory API
+    void*   Memory_Reserve(size_t reservationSize);
+    void*   Memory_Commit(void* mem, size_t commitSize);
+    void    Memory_Decommit(void* mem, size_t decommitSize);
+    void    Memory_Release(void* mem);
+
+    // Timer API
+    void    Timer_Initialize(Timer* timer);
     int64_t Timer_GetTimestamp();
-    double Timer_TicksToMilliseconds(const Timer* timer, int64_t startTicks, int64_t endTicks);
-    double Timer_TicksToMicroseconds(const Timer* timer, int64_t startTicks, int64_t endTicks);
+    double  Timer_TicksToMilliseconds(const Timer* timer, int64_t startTicks, int64_t endTicks);
+    double  Timer_TicksToMicroseconds(const Timer* timer, int64_t startTicks, int64_t endTicks);
 }
