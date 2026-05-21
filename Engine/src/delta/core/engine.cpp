@@ -29,7 +29,8 @@ void delta::Engine::Initialize(Context& context)
     delta::platform::Initialize();
 
     const auto* osInfo = delta::platform::getOSInfo();
-    delta::core::MemoryConfig_Initialize(osInfo->maxEngineWorkerCount);
+    const auto memStatus  = delta::platform::getMemoryStatus();
+    delta::core::MemoryConfig_Initialize(memStatus.physicalInstalled, osInfo->maxEngineWorkerCount);
     delta::core::ThreadContext_Initialize(osInfo->maxEngineWorkerCount, osInfo->osPageSize);
 }
 

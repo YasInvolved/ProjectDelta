@@ -12,6 +12,6 @@ namespace delta::core
     extern EngineMemoryConfig g_MemoryConfig;
     extern std::atomic<size_t> g_TotalLockedBytes;
 
-    void MemoryConfig_Initialize(uint32_t maxEngineWorkers);
+    void MemoryConfig_Initialize(size_t physicalRamInstalled, uint32_t maxEngineWorkers);
     void MemoryConfig_Shutdown();
 }
