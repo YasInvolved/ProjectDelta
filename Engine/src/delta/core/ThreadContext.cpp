@@ -2,7 +2,7 @@
 #include "ThreadContext.h"
 #include "MemoryConfig.h"
 
-#define ALIGN(size, alignment) (size + (alignment - 1)) & ~(alignment - 1)
+#define ALIGN(size, alignment) ((size + (alignment - 1)) & ~(alignment - 1))
 
 namespace delta::core
 {
@@ -41,6 +41,7 @@ namespace delta::core
             ctx.threadIx = i;
             ctx.threadId = 0; // to be set later
 
+            ctx.pageCoordinator.pageSize = pageSize;
             ctx.pageCoordinator.virtualAddressBase = virtualRunwayCursor;
             ctx.pageCoordinator.commitedOffset = 0;
             ctx.pageCoordinator.reservedCapacity = ADDR_SLICE_PER_THREAD;
@@ -80,8 +81,19 @@ namespace delta::core
 
         if (totalSpace > arena->capacity)
         {
-            // TODO: Reallocate
-            return nullptr;
+            // the slow path: assign more pages
+            // assigning twice 2 up front to avoid further slower-path-taking
+            size_t bytesNeeded = totalSpace - arena->capacity;
+            size_t spaceInPages = ALIGN(bytesNeeded, tl_CurrentThreadContext->pageCoordinator.pageSize) * 2;
+            uint8_t* targetAddress = arena->backingMemory + arena->capacity;
+            void* p = delta::platform::Memory_Commit(targetAddress, spaceInPages);
+            bool result = p && delta::platform::Memory_Lock(p, spaceInPages);
+            if (!result)
+            {
+                return nullptr;
+            }
+
+            arena->capacity += spaceInPages;
         }
 
         uint8_t* ptr = reinterpret_cast<uint8_t*>(alignedAddress);

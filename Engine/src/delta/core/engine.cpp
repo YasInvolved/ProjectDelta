@@ -27,11 +27,10 @@ void delta::Engine::Initialize(Context& context)
 {
     context.isRunning = true;
     delta::platform::Initialize();
-
     const auto* osInfo = delta::platform::getOSInfo();
-    const auto memStatus  = delta::platform::getMemoryStatus();
-    delta::core::MemoryConfig_Initialize(memStatus.physicalInstalled, osInfo->maxEngineWorkerCount);
+    const auto memStatus = delta::platform::getMemoryStatus();
 
+    delta::core::MemoryConfig_Initialize(memStatus.physicalInstalled, osInfo->maxEngineWorkerCount);
     if (!delta::platform::Memory_ElevateLockLimit(delta::core::g_MemoryConfig.globalLockCeiling))
     {
         context.isRunning = false;

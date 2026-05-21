@@ -9,6 +9,7 @@ namespace delta::core
         uint8_t* virtualAddressBase;
         size_t commitedOffset;
         size_t reservedCapacity;
+        size_t pageSize;
     };
 
     struct EngineArena
