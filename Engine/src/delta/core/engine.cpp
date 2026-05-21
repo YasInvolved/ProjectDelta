@@ -44,4 +44,5 @@ void delta::Engine::Initialize(Context& context)
 void delta::Engine::Shutdown(Context& context)
 {
     delta::core::ThreadContext_Shutdown();
+    delta::core::MemoryConfig_Shutdown();
 }

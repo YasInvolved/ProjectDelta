@@ -33,6 +33,7 @@ namespace delta::platform
     void*   Memory_Commit(void* mem, size_t commitSize);
     void    Memory_Decommit(void* mem, size_t decommitSize);
     void    Memory_Release(void* mem);
+    bool    Memory_Lock(void* mem, size_t bytes);
     bool    Memory_ElevateLockLimit(size_t maxBytesToLock);
 
     // Timer API

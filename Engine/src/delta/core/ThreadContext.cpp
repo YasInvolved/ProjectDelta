@@ -1,4 +1,6 @@
+#include <iostream>
 #include "ThreadContext.h"
+#include "MemoryConfig.h"
 
 #define ALIGN(size, alignment) (size + (alignment - 1)) & ~(alignment - 1)
 
@@ -29,6 +31,9 @@ namespace delta::core
         );
         assert(g_ThreadContexts != nullptr && "Failed to commit thread context array");
 
+        if (!delta::platform::Memory_Lock(masterPoolBase, alignedContextArraySize))
+            std::cout << "[DeltaEngine-Warning] Failed to lock memory resource: Master Thread Context Pool\n";
+
         uint8_t* virtualRunwayCursor = masterPoolBase + alignedContextArraySize;
         for (uint32_t i = 0; i < totalThreads; i++)
         {
@@ -46,6 +51,9 @@ namespace delta::core
             void* initialPageMemory = delta::platform::Memory_Commit(initialPageTarget, pageSize);
             assert(initialPageMemory != nullptr && "Failed to commit initial arena page!");
 
+            if (!delta::platform::Memory_Lock(initialPageTarget, pageSize))
+                std::cout << "[DeltaEngine-Warning] Failed to lock memory resource: Thread-Local Arena " << i << "\n";
+
             ctx.pageCoordinator.commitedOffset += pageSize;
             ctx.transientArena.backingMemory = reinterpret_cast<uint8_t*>(initialPageTarget);
             ctx.transientArena.capacity = pageSize;
@@ -55,6 +63,7 @@ namespace delta::core
         }
 
         tl_CurrentThreadContext = &g_ThreadContexts[0];
+        g_TotalLockedBytes.fetch_add(totalThreads * pageSize + alignedContextArraySize, std::memory_order_relaxed);
     }
 
     void ThreadContext_Shutdown()

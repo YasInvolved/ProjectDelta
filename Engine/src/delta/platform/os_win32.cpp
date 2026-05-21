@@ -177,6 +177,11 @@ namespace delta::platform
         VirtualFree(ptr, 0, MEM_RELEASE);
     }
 
+    bool Memory_Lock(void* mem, size_t bytes)
+    {
+        return VirtualLock(mem, bytes);
+    }
+
     bool Memory_ElevateLockLimit(size_t maxBytesToLock)
     {
         HANDLE hProcess = GetCurrentProcess();
