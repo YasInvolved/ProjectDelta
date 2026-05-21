@@ -1,4 +1,4 @@
-#include "MemoryManager.h"
+#include "ThreadContext.h"
 
 #define ALIGN(size, alignment) (size + (alignment - 1)) & ~(alignment - 1)
 
@@ -7,7 +7,7 @@ namespace delta::core
     static ThreadExecutionContext* g_ThreadContexts = nullptr;
     thread_local ThreadExecutionContext* tl_CurrentThreadContext = nullptr;
 
-    void MemoryManager_Initialize(uint32_t workerCount, size_t pageSize)
+    void ThreadContext_Initialize(uint32_t workerCount, size_t pageSize)
     {
         uint32_t totalThreads = workerCount + 1; // include main thread
 
@@ -57,12 +57,12 @@ namespace delta::core
         tl_CurrentThreadContext = &g_ThreadContexts[0];
     }
 
-    void MemoryManager_Shutdown()
+    void ThreadContext_Shutdown()
     {
         delta::platform::Memory_Release(g_ThreadContexts);
     }
 
-    void* EngineArena_Allocate(EngineArena* arena, size_t size, size_t alignment)
+    void* ThreadArena_Allocate(EngineArena* arena, size_t size, size_t alignment)
     {
         uintptr_t currentAddress = reinterpret_cast<uintptr_t>(arena->backingMemory) + arena->offset;
         uintptr_t alignedAddress = ALIGN(currentAddress, alignment);
@@ -81,7 +81,7 @@ namespace delta::core
         return ptr;
     }
 
-    void EngineArena_Reset(EngineArena* arena)
+    void ThreadArena_Reset(EngineArena* arena)
     {
         arena->offset = 0;
     }
