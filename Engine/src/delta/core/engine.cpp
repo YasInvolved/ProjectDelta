@@ -20,6 +20,7 @@
 #include <delta/platform/os.h>
 #include <delta/platform/os_internal.h>
 #include <delta/core/ThreadContext.h>
+#include <delta/core/MemoryConfig.h>
 #include <delta/core/EngineTypes.h>
 
 void delta::Engine::Initialize(Context& context)
@@ -28,6 +29,7 @@ void delta::Engine::Initialize(Context& context)
     delta::platform::Initialize();
 
     const auto* osInfo = delta::platform::getOSInfo();
+    delta::core::MemoryConfig_Initialize(osInfo->maxEngineWorkerCount);
     delta::core::ThreadContext_Initialize(osInfo->maxEngineWorkerCount, osInfo->osPageSize);
 }
 

@@ -25,6 +25,8 @@ add_library(ProjectDelta SHARED
    "src/delta/core/EngineTypes.h"
    "src/delta/core/ThreadContext.h"
    "src/delta/core/ThreadContext.cpp"
+   "src/delta/core/MemoryConfig.h"
+   "src/delta/core/MemoryConfig.cpp"
 )
 
 target_compile_definitions(ProjectDelta
