@@ -1,5 +1,7 @@
 #pragma once
 
+#include <delta/platform/os_internal.h>
+
 namespace delta::core
 {
     struct ThreadPageCoordinator
@@ -25,4 +27,6 @@ namespace delta::core
         EngineArena transientArena;
         delta::platform::Timer perThreadTimer;
     };
+
+    extern thread_local ThreadExecutionContext* tl_CurrentThreadContext;
 }

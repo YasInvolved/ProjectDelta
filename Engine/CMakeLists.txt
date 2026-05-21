@@ -23,6 +23,8 @@ add_library(ProjectDelta SHARED
    "src/delta/pch.h"
    "src/delta/pch.cpp"
    "src/delta/core/EngineTypes.h"
+   "src/delta/core/MemoryManager.h"
+   "src/delta/core/MemoryManager.cpp"
 )
 
 target_compile_definitions(ProjectDelta

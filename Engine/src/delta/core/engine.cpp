@@ -17,16 +17,21 @@
 #include <iostream>
 
 #include <delta/core/engine.h>
+#include <delta/platform/os.h>
 #include <delta/platform/os_internal.h>
-
-#include "EngineTypes.h"
+#include <delta/core/MemoryManager.h>
+#include <delta/core/EngineTypes.h>
 
 void delta::Engine::Initialize(Context& context)
 {
     context.isRunning = true;
     delta::platform::Initialize();
+
+    const auto* osInfo = delta::platform::getOSInfo();
+    delta::core::MemoryManager_Initialize(osInfo->maxEngineWorkerCount, osInfo->osPageSize);
 }
 
 void delta::Engine::Shutdown(Context& context)
 {
+    delta::core::MemoryManager_Shutdown();
 }
