@@ -177,6 +177,22 @@ namespace delta::platform
         VirtualFree(ptr, 0, MEM_RELEASE);
     }
 
+    bool Memory_ElevateLockLimit(size_t maxBytesToLock)
+    {
+        HANDLE hProcess = GetCurrentProcess();
+        size_t minWorkingSet = 0;
+        size_t maxWorkingSet = 0;
+
+        if (GetProcessWorkingSetSize(hProcess, &minWorkingSet, &maxWorkingSet))
+        {
+            static constexpr size_t SAFETY_BUFFER_SIZE = (1ull << 26);
+            size_t newMax = maxWorkingSet + maxBytesToLock + SAFETY_BUFFER_SIZE;
+            return SetProcessWorkingSetSize(hProcess, minWorkingSet, newMax);
+        }
+
+        return false;
+    }
+
     const OSInfo* getOSInfo() noexcept { return &g_osInfo; }
 
     MemoryStatus getMemoryStatus()
