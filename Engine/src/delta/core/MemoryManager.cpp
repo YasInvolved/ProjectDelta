@@ -1,5 +1,7 @@
 #include "MemoryManager.h"
 
+#define ALIGN(size, alignment) (size + (alignment - 1)) & ~(alignment - 1)
+
 namespace delta::core
 {
     static ThreadExecutionContext* g_ThreadContexts = nullptr;
@@ -13,7 +15,7 @@ namespace delta::core
         // master pool size is rounded up to page size
         constexpr size_t ADDR_SLICE_PER_THREAD = (1ull << 35);
         size_t contextArraySize = sizeof(ThreadExecutionContext) * totalThreads;
-        size_t alignedContextArraySize = (contextArraySize + (pageSize - 1)) & ~(pageSize - 1);
+        size_t alignedContextArraySize = ALIGN(contextArraySize, pageSize);
         size_t masterPoolSize = (ADDR_SLICE_PER_THREAD * totalThreads) + alignedContextArraySize;
 
         uint8_t* masterPoolBase = reinterpret_cast<uint8_t*>(
@@ -62,11 +64,25 @@ namespace delta::core
 
     void* EngineArena_Allocate(EngineArena* arena, size_t size, size_t alignment)
     {
-        return nullptr;
+        uintptr_t currentAddress = reinterpret_cast<uintptr_t>(arena->backingMemory) + arena->offset;
+        uintptr_t alignedAddress = ALIGN(currentAddress, alignment);
+        size_t padding = alignedAddress - currentAddress;
+        size_t totalSpace = padding + size;
+
+        if (totalSpace > arena->capacity)
+        {
+            // TODO: Reallocate
+            return nullptr;
+        }
+
+        uint8_t* ptr = reinterpret_cast<uint8_t*>(alignedAddress);
+        arena->offset += totalSpace;
+
+        return ptr;
     }
 
     void EngineArena_Reset(EngineArena* arena)
     {
-
+        arena->offset = 0;
     }
 }
