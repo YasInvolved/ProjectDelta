@@ -87,8 +87,7 @@ namespace delta::core
             size_t spaceInPages = ALIGN(bytesNeeded, tl_CurrentThreadContext->pageCoordinator.pageSize) * 2;
             uint8_t* targetAddress = arena->backingMemory + arena->capacity;
             void* p = delta::platform::Memory_Commit(targetAddress, spaceInPages);
-            bool result = p && delta::platform::Memory_Lock(p, spaceInPages);
-            if (!result)
+            if (p && delta::platform::Memory_Lock(p, spaceInPages))
             {
                 return nullptr;
             }

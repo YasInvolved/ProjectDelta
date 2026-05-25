@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-#include <iostream>
-
 #include <delta/core/engine.h>
 #include <delta/platform/os.h>
 #include <delta/platform/os_internal.h>
