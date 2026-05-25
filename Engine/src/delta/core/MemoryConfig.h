@@ -32,17 +32,25 @@ namespace delta::core
         inline constexpr size_t VIRT_ZONE_IO_OFFSET = VIRT_ZONE_SA_OFFSET + VIRT_ZONE_SA_SIZE;
         inline constexpr size_t VIRT_ZONE_IO_SIZE = (1ull << 30); // 1GB (to be reconsidered)
         inline constexpr size_t VIRT_ZONE_IO_BASELINE = UINT64_MAX; // No memory commited, thus no baseline
+
+        // BASELINE SUMMARY
+        inline constexpr size_t VIRT_ZONE_BASELINE_SUM =
+            VIRT_ZONE_TA_BASELINE +
+            VIRT_ZONE_CPA_BASELINE +
+            VIRT_ZONE_SA_BASELINE;
     }
 
     struct EngineMemoryConfig
     {
         size_t totalPhysicalRam;
-        size_t globalLockCeiling;
+        size_t maxAllowedPhysical;
         size_t threadSoftBaseline;
+        size_t activeLockAllocation;
+        size_t globalPoolSize;
     };
 
     extern EngineMemoryConfig g_MemoryConfig;
 
-    void MemoryConfig_Initialize(size_t physicalRamInstalled, uint32_t maxEngineWorkers);
+    void MemoryConfig_Initialize(size_t physicalRamInstalled, size_t pageSize, uint32_t maxEngineWorkers);
     void MemoryConfig_Shutdown();
 }
