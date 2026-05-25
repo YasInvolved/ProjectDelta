@@ -14,20 +14,32 @@
  * limitations under the License.
  */
 
-#include <iostream>
-
 #include <delta/core/engine.h>
+#include <delta/platform/os.h>
 #include <delta/platform/os_internal.h>
-#include <delta/core//MemoryManager.h>
+#include <delta/core/ThreadContext.h>
+#include <delta/core/MemoryConfig.h>
+#include <delta/core/EngineTypes.h>
 
 void delta::Engine::Initialize(Context& context)
 {
     context.isRunning = true;
     delta::platform::Initialize();
-    delta::core::MemoryManager::InitEngineMemory();
+    const auto* osInfo = delta::platform::getOSInfo();
+    const auto memStatus = delta::platform::getMemoryStatus();
+
+    delta::core::MemoryConfig_Initialize(memStatus.physicalInstalled, osInfo->maxEngineWorkerCount);
+    if (!delta::platform::Memory_ElevateLockLimit(delta::core::g_MemoryConfig.globalLockCeiling))
+    {
+        context.isRunning = false;
+        return;
+    }
+
+    delta::core::ThreadContext_Initialize(osInfo->maxEngineWorkerCount, osInfo->osPageSize);
 }
 
 void delta::Engine::Shutdown(Context& context)
 {
-    delta::core::MemoryManager::ShutdownEngineMemory();
+    delta::core::ThreadContext_Shutdown();
+    delta::core::MemoryConfig_Shutdown();
 }

@@ -27,6 +27,21 @@ namespace delta::platform
 {
     static OSInfo g_osInfo;
 
+    struct BrandStringCall
+    {
+        int c1[4];
+        int c2[4];
+        int c3[4];
+
+        static constexpr char UNSPECIFIED_VALUE[] = "(unspecified)";
+    };
+
+    struct Timer_Internal
+    {
+        int64_t freq;
+        int64_t baseStartTime;
+    };
+
     enum CpuArchitecture : WORD
     {
         INTEL = 0,
@@ -95,30 +110,92 @@ namespace delta::platform
 
         g_osInfo.cpuArchitecture = getArchitectureString(static_cast<CpuArchitecture>(info.wProcessorArchitecture)); // safe, points to static string literal
         g_osInfo.osPageSize = info.dwPageSize;
-        g_osInfo.cpuCoreCount = info.dwNumberOfProcessors;
+        g_osInfo.cpuLogicalProcessorCount = info.dwNumberOfProcessors;
+
+        DWORD bufferSize = 0;
+        GetLogicalProcessorInformationEx(RelationProcessorCore, nullptr, &bufferSize);
+
+        void* tempBuffer = malloc(bufferSize);
+        PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX coreInfo = reinterpret_cast<PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX>(tempBuffer);
+
+        uint32_t physicalCores = 0;
+        uint32_t logicalProcessors = 0;
+
+        if (tempBuffer && GetLogicalProcessorInformationEx(RelationProcessorCore, coreInfo, &bufferSize))
+        {
+            uint8_t* ptr = reinterpret_cast<uint8_t*>(tempBuffer);
+            while (ptr < reinterpret_cast<uint8_t*>(tempBuffer) + bufferSize)
+            {
+                PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX current = reinterpret_cast<PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX>(ptr);
+
+                if (current->Relationship == RelationProcessorCore)
+                {
+                    physicalCores++;
+
+                    for (DWORD g = 0; g < current->Processor.GroupCount; g++)
+                    {
+                        logicalProcessors += __popcnt64(current->Processor.GroupMask[g].Mask);
+                    }
+                }
+
+                ptr += current->Size;
+            }
+        }
+
+        free(tempBuffer);
+
+        g_osInfo.cpuPhysicalCoreCount = physicalCores;
+        g_osInfo.cpuLogicalProcessorCount = logicalProcessors;
+        g_osInfo.cpuHasSMT = (logicalProcessors > physicalCores);
+
+        if (physicalCores > 1)
+            g_osInfo.maxEngineWorkerCount = physicalCores - 1;
+        else
+            g_osInfo.maxEngineWorkerCount = 1;
     }
 
-    void* ReserveMemory(size_t reservationSize)
+    void* Memory_Reserve(size_t reservationSize)
     {
         // we don't allow accessing uncommited memory
         void* ptr = VirtualAlloc(nullptr, reservationSize, MEM_RESERVE, PAGE_NOACCESS);
         return ptr;
     }
 
-    void* CommitMemory(void* mem, size_t commitSize)
+    void* Memory_Commit(void* mem, size_t commitSize)
     {
         void* ptr = VirtualAlloc(mem, commitSize, MEM_COMMIT, PAGE_READWRITE);
         return ptr;
     }
 
-    void DecommitMemory(void* mem, size_t decommitSize)
+    void Memory_Decommit(void* mem, size_t decommitSize)
     {
         VirtualFree(mem, decommitSize, MEM_DECOMMIT);
     }
 
-    void ReleaseMemory(void* ptr)
+    void Memory_Release(void* ptr)
     {
         VirtualFree(ptr, 0, MEM_RELEASE);
+    }
+
+    bool Memory_Lock(void* mem, size_t bytes)
+    {
+        return VirtualLock(mem, bytes);
+    }
+
+    bool Memory_ElevateLockLimit(size_t maxBytesToLock)
+    {
+        HANDLE hProcess = GetCurrentProcess();
+        size_t minWorkingSet = 0;
+        size_t maxWorkingSet = 0;
+
+        if (GetProcessWorkingSetSize(hProcess, &minWorkingSet, &maxWorkingSet))
+        {
+            static constexpr size_t SAFETY_BUFFER_SIZE = (1ull << 26);
+            size_t newMax = maxWorkingSet + maxBytesToLock + SAFETY_BUFFER_SIZE;
+            return SetProcessWorkingSetSize(hProcess, minWorkingSet, newMax);
+        }
+
+        return false;
     }
 
     const OSInfo* getOSInfo() noexcept { return &g_osInfo; }
@@ -135,6 +212,46 @@ namespace delta::platform
         }
 
         return status;
+    }
+
+    // Timer
+    static_assert(sizeof(Timer_Internal) <= sizeof(Timer), "Timer opaque storage is too small!");
+
+    void Timer_Initialize(Timer* timer)
+    {
+        Timer_Internal* internal = reinterpret_cast<Timer_Internal*>(timer->opaqueData);
+
+        LARGE_INTEGER freq;
+        BOOL freqResult = QueryPerformanceFrequency(&freq);
+        assert(freqResult && "Hardware high-performance counter is not supported by this system");
+        internal->freq = freq.QuadPart;
+
+        LARGE_INTEGER start;
+        QueryPerformanceCounter(&start);
+        internal->baseStartTime = start.QuadPart;
+    }
+
+    int64_t Timer_GetTimestamp()
+    {
+        LARGE_INTEGER current;
+        QueryPerformanceCounter(&current);
+        return current.QuadPart;
+    }
+
+    double Timer_TicksToMilliseconds(const Timer* timer, int64_t startTicks, int64_t endTicks)
+    {
+        const Timer_Internal* internal = reinterpret_cast<const Timer_Internal*>(timer);
+        int64_t elapsedTicks = endTicks - startTicks;
+
+        return (static_cast<double>(elapsedTicks) * 1000.0) / static_cast<double>(internal->freq);
+    }
+
+    double Timer_TicksToMicroseconds(const Timer* timer, int64_t startTicks, int64_t endTicks)
+    {
+        const Timer_Internal* internal = reinterpret_cast<const Timer_Internal*>(timer);
+        int64_t elapsedTicks = endTicks - startTicks;
+
+        return (static_cast<double>(elapsedTicks) * 1000000.0) / static_cast<double>(internal->freq);
     }
 }
 

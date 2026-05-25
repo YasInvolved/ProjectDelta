@@ -46,6 +46,9 @@ extern "C"
             "\tCPU Architecture: " << info->cpuArchitecture << "\n" <<
             "\tCPU Manufacturer: " << info->cpuManufacturerId << "\n" <<
             "\tCPU Model: " << info->cpuBrandString << "\n" <<
+            "\tCPU Physical Cores: " << info->cpuPhysicalCoreCount << "\n" <<
+            "\tCPU Logical Cores: " << info->cpuLogicalProcessorCount << "\n" <<
+            "\tCPU Has SMT: " << STDOUT_BOOL_FORMAT(info->cpuHasSMT) << "\n" << 
             "\tAVX2 Available: " << STDOUT_BOOL_FORMAT(info->cpuHasAVX2) << "\n" <<
             "\tAVX512 Foundation Available: " << STDOUT_BOOL_FORMAT(info->cpuHasAVX512f) << "\n" <<
             "\tAVX512 Conflict Detection Available: " << STDOUT_BOOL_FORMAT(info->cpuHasAVX512cd) << "\n" <<

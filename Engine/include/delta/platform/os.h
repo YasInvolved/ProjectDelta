@@ -20,19 +20,22 @@ namespace delta::platform
 {
     struct OSInfo
     {
-        // cpu
-        char cpuManufacturerId[13];
-        char cpuBrandString[sizeof(int) * 12 + 1];
         const char* cpuArchitecture;
-        uint32_t cpuCoreCount;
+
+        uint32_t cpuPhysicalCoreCount;
+        uint32_t cpuLogicalProcessorCount;
+        uint32_t maxEngineWorkerCount;
+        uint32_t osPageSize;
+
+        char cpuBrandString[sizeof(int) * 12 + 1];
+        char cpuManufacturerId[13];
+
+        bool cpuHasSMT;
         bool cpuHasAVX2;
         bool cpuHasAVX512f;
         bool cpuHasAVX512cd;
         bool cpuHasAVX512er;
         bool cpuHasAVX512pf;
-
-        // general OS info
-        uint32_t osPageSize;
     };
 
     struct MemoryStatus

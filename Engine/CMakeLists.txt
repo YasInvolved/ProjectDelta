@@ -18,17 +18,16 @@ add_library(ProjectDelta SHARED
    "include/delta/definitions.h"
    "src/delta/platform/os_internal.h"
    "src/delta/platform/os_win32.cpp"
-   "src/delta/platform/os_linux.cpp"
    "include/delta/platform/os.h"
    "include/delta/pch.h"
    "src/delta/pch.h"
    "src/delta/pch.cpp"
-   "src/delta/core/MemoryManager.h"
-   "src/delta/core/MemoryManager.cpp"
-   "src/delta/core/FrameAllocator.h"
-   "src/delta/core/FrameAllocator.cpp"
-   "src/delta/internal_definitions.h"
- "src/delta/core/FreeListAllocator.h" "src/delta/core/FreeListAllocator.cpp")
+   "src/delta/core/EngineTypes.h"
+   "src/delta/core/ThreadContext.h"
+   "src/delta/core/ThreadContext.cpp"
+   "src/delta/core/MemoryConfig.h"
+   "src/delta/core/MemoryConfig.cpp"
+)
 
 target_compile_definitions(ProjectDelta
    PRIVATE DLT_EXPORT_SYMBOLS
