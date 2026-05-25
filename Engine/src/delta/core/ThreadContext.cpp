@@ -64,7 +64,6 @@ namespace delta::core
         }
 
         tl_CurrentThreadContext = &g_ThreadContexts[0];
-        g_TotalLockedBytes.fetch_add(totalThreads * pageSize + alignedContextArraySize, std::memory_order_relaxed);
     }
 
     void ThreadContext_Shutdown()
