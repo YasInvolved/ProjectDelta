@@ -20,12 +20,28 @@ namespace delta::core
         size_t offset;
     };
 
+    using task_t = void (*)(void*);
+    struct TaskQueue // SoA structure, Chase-Lev queue
+    {
+        std::atomic<uint64_t> top;
+        std::atomic<uint64_t> bottom;
+
+        uint64_t size;
+        uint64_t mask;
+
+        task_t* tasks;
+        void** payloads;
+
+        static inline constexpr size_t FIELD_SIZE = sizeof(decltype(tasks)) + sizeof(decltype(payloads));
+    };
+
     struct alignas(64) ThreadExecutionContext
     {
         uint32_t threadIx;
         uint32_t threadId;
 
         ThreadPageCoordinator pageCoordinator;
+        TaskQueue taskQueue;
         ThreadArena transientArena;
         ThreadArena componentPoolArena;
         ThreadArena sceneArena;

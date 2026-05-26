@@ -17,6 +17,15 @@ namespace delta::core
         pageCoord.reservedCapacity = MemoryMap::VIRT_ZONE_SPACE_LENGTH;
     }
 
+    DLT_FORCE_INLINE static void InitializeQueue(const ThreadPageCoordinator& pageCoord, size_t offset, size_t size)
+    {
+        // a queue is commited in whole
+        uint8_t* pTarget = pageCoord.virtualAddressBase + offset;
+        void* p = delta::platform::Memory_Commit(pTarget, size);
+
+
+    }
+
     DLT_FORCE_INLINE static void InitializeArena(const ThreadPageCoordinator& pageCoord, ThreadArena& arena, size_t offset, size_t baseline)
     {
         uint8_t* pTarget = pageCoord.virtualAddressBase + offset;
@@ -65,21 +74,11 @@ namespace delta::core
             InitializePageCoordinator(ctx.pageCoordinator, pageSize, virtualRunwayCursor);
             virtualRunwayCursor += ADDR_SLICE_PER_THREAD;
 
+            InitializeQueue(ctx.pageCoordinator, MemoryMap::VIRT_ZONE_QUEUE_OFFSET, MemoryMap::VIRT_ZONE_QUEUE_SIZE);
+
             InitializeArena(ctx.pageCoordinator, ctx.transientArena, MemoryMap::VIRT_ZONE_TA_OFFSET, MemoryMap::VIRT_ZONE_TA_BASELINE);
             InitializeArena(ctx.pageCoordinator, ctx.componentPoolArena, MemoryMap::VIRT_ZONE_CPA_OFFSET, MemoryMap::VIRT_ZONE_CPA_BASELINE);
             InitializeArena(ctx.pageCoordinator, ctx.sceneArena, MemoryMap::VIRT_ZONE_SA_OFFSET, MemoryMap::VIRT_ZONE_SA_BASELINE);
-
-            /*uint8_t* initialPageTarget = ctx.pageCoordinator.virtualAddressBase + ctx.pageCoordinator.commitedOffset;
-            void* initialPageMemory = delta::platform::Memory_Commit(initialPageTarget, pageSize);
-            assert(initialPageMemory != nullptr && "Failed to commit initial arena page!");
-
-            if (!delta::platform::Memory_Lock(initialPageTarget, pageSize))
-                std::cout << "[DeltaEngine-Warning] Failed to lock memory resource: Thread-Local Arena " << i << "\n";
-
-            ctx.pageCoordinator.commitedOffset += pageSize;
-            ctx.transientArena.backingMemory = reinterpret_cast<uint8_t*>(initialPageTarget);
-            ctx.transientArena.capacity = pageSize;
-            ctx.transientArena.offset = 0;*/
 
             delta::platform::Timer_Initialize(&ctx.perThreadTimer);
         }
