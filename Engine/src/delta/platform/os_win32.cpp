@@ -20,6 +20,7 @@
 #include "os_internal.h"
 #include <Windows.h>
 #include <intrin.h>
+#include <iostream>
 
 #define CHECK_CPUID_FLAG(register, flag) ((register & (1 << flag)) != 0)
 
@@ -71,7 +72,7 @@ namespace delta::platform
         }
     }
 
-    inline static void fetchCpuidValues()
+    DLT_FORCE_INLINE static void fetchCpuidValues()
     {
         int cpuinfo[4];
         __cpuid(cpuinfo, 0);
@@ -98,6 +99,35 @@ namespace delta::platform
         }
         else
             memcpy(g_osInfo.cpuBrandString, BrandStringCall::UNSPECIFIED_VALUE, sizeof(BrandStringCall::UNSPECIFIED_VALUE));
+    }
+
+    DLT_FORCE_INLINE static bool SetProcessPrivileges()
+    {
+        HANDLE hToken = NULL;
+
+        if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hToken))
+            return false;
+
+        TOKEN_PRIVILEGES tp;
+        LUID luid;
+        if (!LookupPrivilegeValueA(NULL, SE_INC_WORKING_SET_NAME, &luid))
+        {
+            CloseHandle(hToken);
+            return false;
+        }
+
+        tp.PrivilegeCount = 1;
+        tp.Privileges[0].Luid = luid;
+        tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+
+        BOOL result = AdjustTokenPrivileges(hToken, FALSE, &tp, sizeof(TOKEN_PRIVILEGES), NULL, NULL);
+        DWORD error = GetLastError();
+
+        CloseHandle(hToken);
+        if (result == FALSE || error == ERROR_NOT_ALL_ASSIGNED)
+            return false;
+
+        return true;
     }
 
     void Initialize()
@@ -152,6 +182,10 @@ namespace delta::platform
             g_osInfo.maxEngineWorkerCount = physicalCores - 1;
         else
             g_osInfo.maxEngineWorkerCount = 1;
+
+        bool privilegesSet = SetProcessPrivileges();
+        if (!privilegesSet)
+            std::cout << "[DeltaEngine-Warning] Failed to elevate SE_INC_WORKING_SET_NAME privilege. You may want to run the game as an administrator.\n";
     }
 
     void* Memory_Reserve(size_t reservationSize)
@@ -182,7 +216,7 @@ namespace delta::platform
         return VirtualLock(mem, bytes);
     }
 
-    bool Memory_ElevateLockLimit(size_t maxBytesToLock)
+    bool Memory_ElevateLockLimit(size_t bytesToLock)
     {
         HANDLE hProcess = GetCurrentProcess();
         size_t minWorkingSet = 0;
@@ -191,8 +225,9 @@ namespace delta::platform
         if (GetProcessWorkingSetSize(hProcess, &minWorkingSet, &maxWorkingSet))
         {
             static constexpr size_t SAFETY_BUFFER_SIZE = (1ull << 26);
-            size_t newMax = maxWorkingSet + maxBytesToLock + SAFETY_BUFFER_SIZE;
-            return SetProcessWorkingSetSize(hProcess, minWorkingSet, newMax);
+            size_t newMin = minWorkingSet + bytesToLock;
+            size_t newMax = maxWorkingSet + bytesToLock;
+            return SetProcessWorkingSetSizeEx(hProcess, newMin, newMax, QUOTA_LIMITS_HARDWS_MIN_DISABLE | QUOTA_LIMITS_HARDWS_MAX_ENABLE) == TRUE;
         }
 
         return false;

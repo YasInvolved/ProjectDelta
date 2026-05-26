@@ -1,6 +1,7 @@
 #include "MemoryConfig.h"
 #include "EngineTypes.h"
 #include <delta/platform/os.h>
+#include <iostream>
 
 namespace delta::core
 {
@@ -21,6 +22,10 @@ namespace delta::core
         g_MemoryConfig.activeLockAllocation = (rawLockBudget + (pageSize - 1)) & ~(pageSize - 1);
         g_MemoryConfig.globalPoolSize = g_MemoryConfig.maxAllowedPhysical - g_MemoryConfig.activeLockAllocation;
         assert(g_MemoryConfig.activeLockAllocation <= g_MemoryConfig.globalPoolSize);
+
+        bool result = delta::platform::Memory_ElevateLockLimit(g_MemoryConfig.activeLockAllocation);
+        if (!result)
+            std::cout << "[DeltaEngine-Warning] Failed to elevate process working set quota\n";
     }
 
     void MemoryConfig_Shutdown()
