@@ -17,13 +17,22 @@ namespace delta::core
         pageCoord.reservedCapacity = MemoryMap::VIRT_ZONE_SPACE_LENGTH;
     }
 
-    DLT_FORCE_INLINE static void InitializeQueue(const ThreadPageCoordinator& pageCoord, size_t offset, size_t size)
+    DLT_FORCE_INLINE static void InitializeQueue(const ThreadPageCoordinator& pageCoord, TaskQueue& queue, size_t offset, size_t memSize)
     {
+        queue.size = memSize / TaskQueue::FIELD_SIZE;
+        queue.mask = queue.size - 1;
+        queue.top.store(0, std::memory_order_relaxed);
+        queue.bottom.store(0, std::memory_order_relaxed);
+
         // a queue is commited in whole
         uint8_t* pTarget = pageCoord.virtualAddressBase + offset;
-        void* p = delta::platform::Memory_Commit(pTarget, size);
+        void* p = delta::platform::Memory_Commit(pTarget, memSize);
+        assert(p != nullptr);
 
-
+        uint8_t* tasksArrayPtr = pTarget;
+        uint8_t* payloadsArrayPtr = pTarget + queue.size;
+        queue.tasks = reinterpret_cast<task_t*>(tasksArrayPtr);
+        queue.payloads = reinterpret_cast<void**>(payloadsArrayPtr);
     }
 
     DLT_FORCE_INLINE static void InitializeArena(const ThreadPageCoordinator& pageCoord, ThreadArena& arena, size_t offset, size_t baseline)
@@ -72,15 +81,13 @@ namespace delta::core
             ctx.threadId = 0; // to be set later
 
             InitializePageCoordinator(ctx.pageCoordinator, pageSize, virtualRunwayCursor);
-            virtualRunwayCursor += ADDR_SLICE_PER_THREAD;
-
-            InitializeQueue(ctx.pageCoordinator, MemoryMap::VIRT_ZONE_QUEUE_OFFSET, MemoryMap::VIRT_ZONE_QUEUE_SIZE);
-
+            InitializeQueue(ctx.pageCoordinator, ctx.taskQueue, MemoryMap::VIRT_ZONE_QUEUE_OFFSET, MemoryMap::VIRT_ZONE_QUEUE_SIZE);
             InitializeArena(ctx.pageCoordinator, ctx.transientArena, MemoryMap::VIRT_ZONE_TA_OFFSET, MemoryMap::VIRT_ZONE_TA_BASELINE);
             InitializeArena(ctx.pageCoordinator, ctx.componentPoolArena, MemoryMap::VIRT_ZONE_CPA_OFFSET, MemoryMap::VIRT_ZONE_CPA_BASELINE);
             InitializeArena(ctx.pageCoordinator, ctx.sceneArena, MemoryMap::VIRT_ZONE_SA_OFFSET, MemoryMap::VIRT_ZONE_SA_BASELINE);
 
             delta::platform::Timer_Initialize(&ctx.perThreadTimer);
+            virtualRunwayCursor += ADDR_SLICE_PER_THREAD;
         }
 
         tl_CurrentThreadContext = &g_ThreadContexts[0];
