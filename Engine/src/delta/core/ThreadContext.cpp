@@ -9,6 +9,27 @@ namespace delta::core
     static ThreadExecutionContext* g_ThreadContexts = nullptr;
     thread_local ThreadExecutionContext* tl_CurrentThreadContext = nullptr;
 
+    DLT_FORCE_INLINE static void InitializePageCoordinator(ThreadPageCoordinator& pageCoord, size_t pageSize, uint8_t* baseAddress)
+    {
+        pageCoord.pageSize = pageSize;
+        pageCoord.virtualAddressBase = baseAddress;
+        pageCoord.commitedOffset = 0;
+        pageCoord.reservedCapacity = MemoryMap::VIRT_ZONE_SPACE_LENGTH;
+    }
+
+    DLT_FORCE_INLINE static void InitializeArena(const ThreadPageCoordinator& pageCoord, ThreadArena& arena, size_t offset, size_t baseline)
+    {
+        uint8_t* pTarget = pageCoord.virtualAddressBase + offset;
+        void* res = delta::platform::Memory_Commit(pTarget, baseline);
+        assert(res != nullptr);
+
+        // TODO: Lock
+
+        arena.backingMemory = pTarget;
+        arena.capacity = baseline;
+        arena.offset = 0;
+    }
+
     void ThreadContext_Initialize(uint32_t workerCount, size_t pageSize)
     {
         uint32_t totalThreads = workerCount + 1; // include main thread
@@ -41,14 +62,14 @@ namespace delta::core
             ctx.threadIx = i;
             ctx.threadId = 0; // to be set later
 
-            ctx.pageCoordinator.pageSize = pageSize;
-            ctx.pageCoordinator.virtualAddressBase = virtualRunwayCursor;
-            ctx.pageCoordinator.commitedOffset = 0;
-            ctx.pageCoordinator.reservedCapacity = ADDR_SLICE_PER_THREAD;
-
+            InitializePageCoordinator(ctx.pageCoordinator, pageSize, virtualRunwayCursor);
             virtualRunwayCursor += ADDR_SLICE_PER_THREAD;
 
-            uint8_t* initialPageTarget = ctx.pageCoordinator.virtualAddressBase + ctx.pageCoordinator.commitedOffset;
+            InitializeArena(ctx.pageCoordinator, ctx.transientArena, MemoryMap::VIRT_ZONE_TA_OFFSET, MemoryMap::VIRT_ZONE_TA_BASELINE);
+            InitializeArena(ctx.pageCoordinator, ctx.componentPoolArena, MemoryMap::VIRT_ZONE_CPA_OFFSET, MemoryMap::VIRT_ZONE_CPA_BASELINE);
+            InitializeArena(ctx.pageCoordinator, ctx.sceneArena, MemoryMap::VIRT_ZONE_SA_OFFSET, MemoryMap::VIRT_ZONE_SA_BASELINE);
+
+            /*uint8_t* initialPageTarget = ctx.pageCoordinator.virtualAddressBase + ctx.pageCoordinator.commitedOffset;
             void* initialPageMemory = delta::platform::Memory_Commit(initialPageTarget, pageSize);
             assert(initialPageMemory != nullptr && "Failed to commit initial arena page!");
 
@@ -58,7 +79,7 @@ namespace delta::core
             ctx.pageCoordinator.commitedOffset += pageSize;
             ctx.transientArena.backingMemory = reinterpret_cast<uint8_t*>(initialPageTarget);
             ctx.transientArena.capacity = pageSize;
-            ctx.transientArena.offset = 0;
+            ctx.transientArena.offset = 0;*/
 
             delta::platform::Timer_Initialize(&ctx.perThreadTimer);
         }
@@ -71,7 +92,7 @@ namespace delta::core
         delta::platform::Memory_Release(g_ThreadContexts);
     }
 
-    void* ThreadArena_Allocate(EngineArena* arena, size_t size, size_t alignment)
+    void* ThreadArena_Allocate(ThreadArena* arena, size_t size, size_t alignment)
     {
         uintptr_t currentAddress = reinterpret_cast<uintptr_t>(arena->backingMemory) + arena->offset;
         uintptr_t alignedAddress = ALIGN(currentAddress, alignment);
@@ -100,7 +121,7 @@ namespace delta::core
         return ptr;
     }
 
-    void ThreadArena_Reset(EngineArena* arena)
+    void ThreadArena_Reset(ThreadArena* arena)
     {
         arena->offset = 0;
     }

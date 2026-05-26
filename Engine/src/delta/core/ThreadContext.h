@@ -9,6 +9,6 @@ namespace delta::core
     void ThreadContext_Shutdown();
 
     // Engine Arena API
-    void*   ThreadArena_Allocate(EngineArena* arena, size_t size, size_t alignment = 8);
-    void    ThreadArena_Reset(EngineArena* arena);
+    void*   ThreadArena_Allocate(ThreadArena* arena, size_t size, size_t alignment = 8);
+    void    ThreadArena_Reset(ThreadArena* arena);
 }

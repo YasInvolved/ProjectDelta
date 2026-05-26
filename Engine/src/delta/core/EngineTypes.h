@@ -4,6 +4,7 @@
 
 namespace delta::core
 {
+    // TODO: revise this structure and its purpose
     struct ThreadPageCoordinator
     {
         uint8_t* virtualAddressBase;
@@ -12,7 +13,7 @@ namespace delta::core
         size_t pageSize;
     };
 
-    struct EngineArena
+    struct ThreadArena
     {
         uint8_t* backingMemory;
         size_t capacity;
@@ -25,7 +26,9 @@ namespace delta::core
         uint32_t threadId;
 
         ThreadPageCoordinator pageCoordinator;
-        EngineArena transientArena;
+        ThreadArena transientArena;
+        ThreadArena componentPoolArena;
+        ThreadArena sceneArena;
         delta::platform::Timer perThreadTimer;
     };
 
