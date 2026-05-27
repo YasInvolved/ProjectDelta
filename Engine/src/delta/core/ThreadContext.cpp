@@ -6,6 +6,8 @@
 
 namespace delta::core
 {
+    static uint32_t g_ThreadCount = 0;
+    static uint32_t g_WorkerCount = 0;
     static ThreadExecutionContext* g_ThreadContexts = nullptr;
     thread_local ThreadExecutionContext* tl_CurrentThreadContext = nullptr;
 
@@ -64,7 +66,8 @@ namespace delta::core
         );
         assert(masterPoolBase != nullptr && "Failed to reserve master pool");
 
-
+        g_ThreadCount = workerCount;
+        g_WorkerCount = workerCount - 1;
         g_ThreadContexts = reinterpret_cast<ThreadExecutionContext*>(
             delta::platform::Memory_Commit(masterPoolBase, alignedContextArraySize)
         );
@@ -169,6 +172,47 @@ namespace delta::core
             return false;
 
         return true;
+    }
+
+    void Scheduler_ProcessTaskBatch(task_t* tasks, payload_t* payloads, size_t length)
+    {
+        assert(tl_CurrentThreadContext->threadIx == 0); // CAN BE EXECUTED ONLY ON MAIN THREAD!
+
+        for (size_t i = 0; i < length; i++)
+        {
+            size_t targetIx = 1 + (i % g_WorkerCount);
+            TaskQueue_Push(&g_ThreadContexts[targetIx].taskQueue, tasks[i], payloads[i]);
+        }
+    }
+
+    void Scheduler_Sync()
+    {
+        assert(tl_CurrentThreadContext->threadIx == 0); // CAN BE EXECUTED ONLY ON MAIN THREAD!
+
+        uint32_t workerIx = 1;
+        uint32_t consecutiveEmptyQueues = 0;
+
+        while (consecutiveEmptyQueues < g_ThreadCount)
+        {
+            task_t task = nullptr;
+            payload_t payload = nullptr;
+
+            if (TaskQueue_Steal(&g_ThreadContexts[workerIx].taskQueue, &task, &payload))
+            {
+                consecutiveEmptyQueues = 0;
+                assert(task && payload);
+
+                size_t snapshot = tl_CurrentThreadContext->transientArena.offset;
+                task(payload);
+                tl_CurrentThreadContext->transientArena.offset = snapshot;
+            }
+            else
+            {
+                consecutiveEmptyQueues++;
+            }
+
+            workerIx = 1 + (workerIx % g_WorkerCount);
+        }
     }
 
     void* ThreadArena_Allocate(ThreadArena* arena, size_t size, size_t alignment)

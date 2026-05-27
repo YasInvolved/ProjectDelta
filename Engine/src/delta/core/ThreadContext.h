@@ -13,6 +13,10 @@ namespace delta::core
     bool TaskQueue_Pop(TaskQueue* queue, task_t* outTask, payload_t* outPayload);
     bool TaskQueue_Steal(TaskQueue* queue, task_t* outTask, payload_t* outPayload);
 
+    // Scheduler API
+    void Scheduler_ProcessTaskBatch(task_t* tasks, payload_t* payloads, size_t length);
+    void Scheduler_Sync();
+
     // Engine Arena API
     void*   ThreadArena_Allocate(ThreadArena* arena, size_t size, size_t alignment = 8);
     void    ThreadArena_Reset(ThreadArena* arena);
