@@ -23,10 +23,10 @@ namespace delta::core
     using task_t = void (*)(void*);
     struct TaskQueue // SoA structure, Chase-Lev queue
     {
-        std::atomic<uint64_t> top;
-        std::atomic<uint64_t> bottom;
+        alignas(64) std::atomic<uint64_t> top;
+        alignas(64) std::atomic<uint64_t> bottom;
 
-        uint64_t size;
+        alignas(64) uint64_t size;
         uint64_t mask;
 
         task_t* tasks;
@@ -42,11 +42,17 @@ namespace delta::core
 
         ThreadPageCoordinator pageCoordinator;
         TaskQueue taskQueue;
-        ThreadArena transientArena;
+
+        alignas(64) ThreadArena transientArena;
         ThreadArena componentPoolArena;
         ThreadArena sceneArena;
-        delta::platform::Timer perThreadTimer;
+
+        alignas(64) delta::platform::Timer perThreadTimer;
+
+        uint8_t hardwarePadding[32];
     };
 
     extern thread_local ThreadExecutionContext* tl_CurrentThreadContext;
+
+    static_assert((sizeof(ThreadExecutionContext) % 64) == 0);
 }
