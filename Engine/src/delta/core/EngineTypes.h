@@ -21,6 +21,7 @@ namespace delta::core
     };
 
     using task_t = void (*)(void*);
+    using payload_t = void*;
     struct TaskQueue // SoA structure, Chase-Lev queue
     {
         alignas(64) std::atomic<uint64_t> top;
@@ -30,9 +31,9 @@ namespace delta::core
         uint64_t mask;
 
         task_t* tasks;
-        void** payloads;
+        payload_t* payloads;
 
-        static inline constexpr size_t FIELD_SIZE = sizeof(decltype(tasks)) + sizeof(decltype(payloads));
+        static inline constexpr size_t FIELD_SIZE = sizeof(task_t) + sizeof(payload_t);
     };
 
     struct alignas(64) ThreadExecutionContext

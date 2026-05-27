@@ -98,7 +98,7 @@ namespace delta::core
         delta::platform::Memory_Release(g_ThreadContexts);
     }
 
-    void TaskQueue_Push(TaskQueue* queue, task_t task, void* payload)
+    void TaskQueue_Push(TaskQueue* queue, task_t task, payload_t payload)
     {
         uint64_t b = queue->bottom.load(std::memory_order_relaxed);
         uint64_t t = queue->top.load(std::memory_order_acquire);
@@ -118,7 +118,7 @@ namespace delta::core
         queue->bottom.store(b + 1, std::memory_order_relaxed);
     }
 
-    bool TaskQueue_Pop(TaskQueue* queue, task_t* outTask, void** outPayload)
+    bool TaskQueue_Pop(TaskQueue* queue, task_t* outTask, payload_t* outPayload)
     {
         uint64_t b = queue->bottom.load(std::memory_order_relaxed) - 1;
         queue->bottom.store(b, std::memory_order_relaxed);
@@ -151,7 +151,7 @@ namespace delta::core
         return true;
     }
 
-    bool TaskQueue_Steal(TaskQueue* queue, task_t* outTask, void** outPayload)
+    bool TaskQueue_Steal(TaskQueue* queue, task_t* outTask, payload_t* outPayload)
     {
         uint64_t t = queue->top.load(std::memory_order_acquire);
 

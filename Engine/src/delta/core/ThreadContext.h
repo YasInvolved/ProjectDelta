@@ -9,9 +9,9 @@ namespace delta::core
     void ThreadContext_Shutdown();
 
     // Thread Task Queue API
-    void TaskQueue_Push(TaskQueue* queue, task_t task, void* payload);
-    bool TaskQueue_Pop(TaskQueue* queue, task_t* outTask, void** outPayload);
-    bool TaskQueue_Steal(TaskQueue* queue, task_t* outTask, void** outPayload);
+    void TaskQueue_Push(TaskQueue* queue, task_t task, payload_t payload);
+    bool TaskQueue_Pop(TaskQueue* queue, task_t* outTask, payload_t* outPayload);
+    bool TaskQueue_Steal(TaskQueue* queue, task_t* outTask, payload_t* outPayload);
 
     // Engine Arena API
     void*   ThreadArena_Allocate(ThreadArena* arena, size_t size, size_t alignment = 8);
