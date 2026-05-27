@@ -98,6 +98,79 @@ namespace delta::core
         delta::platform::Memory_Release(g_ThreadContexts);
     }
 
+    void TaskQueue_Push(TaskQueue* queue, task_t task, void* payload)
+    {
+        uint64_t b = queue->bottom.load(std::memory_order_relaxed);
+        uint64_t t = queue->top.load(std::memory_order_acquire);
+
+        if (b - t > queue->size)
+        {
+            // execute immadietely if the queue is full
+            task(payload);
+            return;
+        }
+
+        uint64_t ix = b & queue->mask;
+        queue->tasks[ix] = task;
+        queue->payloads[ix] = payload;
+
+        std::atomic_thread_fence(std::memory_order_release);
+        queue->bottom.store(b + 1, std::memory_order_relaxed);
+    }
+
+    bool TaskQueue_Pop(TaskQueue* queue, task_t* outTask, void** outPayload)
+    {
+        uint64_t b = queue->bottom.load(std::memory_order_relaxed) - 1;
+        queue->bottom.store(b, std::memory_order_relaxed);
+
+        std::atomic_thread_fence(std::memory_order_seq_cst);
+        uint64_t t = queue->top.load(std::memory_order_relaxed);
+
+        if (t > b)
+        {
+            queue->bottom.store(b + 1, std::memory_order_relaxed);
+            return false;
+        }
+
+        uint64_t ix = b & queue->mask;
+        *outTask = queue->tasks[ix];
+        *outPayload = queue->payloads[ix];
+
+        if (t == b)
+        {
+            uint64_t expectedTop = t;
+            if (!queue->top.compare_exchange_strong(expectedTop, expectedTop + 1, std::memory_order_seq_cst, std::memory_order_relaxed))
+            {
+                queue->bottom.store(b + 1, std::memory_order_relaxed);
+                return false;
+            }
+
+            queue->bottom.store(b + 1, std::memory_order_relaxed);
+        }
+
+        return true;
+    }
+
+    bool TaskQueue_Steal(TaskQueue* queue, task_t* outTask, void** outPayload)
+    {
+        uint64_t t = queue->top.load(std::memory_order_acquire);
+
+        std::atomic_thread_fence(std::memory_order_seq_cst);
+        uint64_t b = queue->bottom.load(std::memory_order_acquire);
+
+        if (t >= b)
+            return false;
+
+        uint64_t ix = t & queue->mask;
+        *outTask = queue->tasks[ix];
+        *outPayload = queue->payloads[ix];
+
+        if (!queue->top.compare_exchange_strong(t, t + 1, std::memory_order_seq_cst, std::memory_order_relaxed))
+            return false;
+
+        return true;
+    }
+
     void* ThreadArena_Allocate(ThreadArena* arena, size_t size, size_t alignment)
     {
         uintptr_t currentAddress = reinterpret_cast<uintptr_t>(arena->backingMemory) + arena->offset;

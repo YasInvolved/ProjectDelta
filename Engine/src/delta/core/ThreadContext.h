@@ -8,6 +8,11 @@ namespace delta::core
     void ThreadContext_Initialize(uint32_t workerCount, size_t pageSize);
     void ThreadContext_Shutdown();
 
+    // Thread Task Queue API
+    void TaskQueue_Push(TaskQueue* queue, task_t task, void* payload);
+    bool TaskQueue_Pop(TaskQueue* queue, task_t* outTask, void** outPayload);
+    bool TaskQueue_Steal(TaskQueue* queue, task_t* outTask, void** outPayload);
+
     // Engine Arena API
     void*   ThreadArena_Allocate(ThreadArena* arena, size_t size, size_t alignment = 8);
     void    ThreadArena_Reset(ThreadArena* arena);
