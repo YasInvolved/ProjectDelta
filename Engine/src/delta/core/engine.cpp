@@ -28,8 +28,9 @@ void delta::Engine::Initialize(Context& context)
     const auto* osInfo = delta::platform::getOSInfo();
     const auto memStatus = delta::platform::getMemoryStatus();
 
-    delta::core::MemoryConfig_Initialize(memStatus.physicalInstalled, osInfo->osPageSize, osInfo->maxEngineWorkerCount);
-    delta::core::ThreadContext_Initialize(osInfo->maxEngineWorkerCount, osInfo->osPageSize);
+    uint32_t totalThreads = osInfo->cpuPhysicalCoreCount;
+    delta::core::MemoryConfig_Initialize(memStatus.physicalInstalled, osInfo->osPageSize, totalThreads);
+    delta::core::ThreadContext_Initialize(totalThreads, osInfo->osPageSize);
 }
 
 void delta::Engine::Shutdown(Context& context)

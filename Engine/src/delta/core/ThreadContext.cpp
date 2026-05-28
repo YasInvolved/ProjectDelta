@@ -8,8 +8,8 @@ namespace delta::core
 {
     static uint32_t g_ThreadCount = 0;
     static uint32_t g_WorkerCount = 0;
-    static ThreadExecutionContext* g_ThreadContexts = nullptr;
-    thread_local ThreadExecutionContext* tl_CurrentThreadContext = nullptr;
+    static GenericExecutionContext* g_ThreadContexts = nullptr;
+    thread_local GenericExecutionContext* tl_CurrentThreadContext = nullptr;
 
     DLT_FORCE_INLINE static void InitializePageCoordinator(ThreadPageCoordinator& pageCoord, size_t pageSize, uint8_t* baseAddress)
     {
@@ -50,25 +50,24 @@ namespace delta::core
         arena.offset = 0;
     }
 
-    void ThreadContext_Initialize(uint32_t workerCount, size_t pageSize)
+    void ThreadContext_Initialize(uint32_t threadCount, size_t pageSize)
     {
-        uint32_t totalThreads = workerCount + 1; // include main thread
+        g_ThreadCount = threadCount;
+        g_WorkerCount = threadCount - 1;
 
         // assign 32Gb of address space per thread
         // master pool size is rounded up to page size
         constexpr size_t ADDR_SLICE_PER_THREAD = (1ull << 35);
-        size_t contextArraySize = sizeof(ThreadExecutionContext) * totalThreads;
+        size_t contextArraySize = THREAD_EXECUTION_CONTEXT_SIZE * threadCount;
         size_t alignedContextArraySize = ALIGN(contextArraySize, pageSize);
-        size_t masterPoolSize = (ADDR_SLICE_PER_THREAD * totalThreads) + alignedContextArraySize;
+        size_t masterPoolSize = (ADDR_SLICE_PER_THREAD * threadCount) + alignedContextArraySize;
 
         uint8_t* masterPoolBase = reinterpret_cast<uint8_t*>(
             delta::platform::Memory_Reserve(masterPoolSize)
         );
         assert(masterPoolBase != nullptr && "Failed to reserve master pool");
 
-        g_ThreadCount = workerCount;
-        g_WorkerCount = workerCount - 1;
-        g_ThreadContexts = reinterpret_cast<ThreadExecutionContext*>(
+        g_ThreadContexts = reinterpret_cast<GenericExecutionContext*>(
             delta::platform::Memory_Commit(masterPoolBase, alignedContextArraySize)
         );
         assert(g_ThreadContexts != nullptr && "Failed to commit thread context array");
@@ -76,21 +75,31 @@ namespace delta::core
         if (!delta::platform::Memory_Lock(masterPoolBase, alignedContextArraySize))
             std::cout << "[DeltaEngine-Warning] Failed to lock memory resource: Master Thread Context Pool\n";
 
-        uint8_t* virtualRunwayCursor = masterPoolBase + alignedContextArraySize;
-        for (uint32_t i = 0; i < totalThreads; i++)
+        // pre-initialize generics
+        uint8_t* runwayCursor = masterPoolBase + alignedContextArraySize;
+        for (uint32_t i = 0; i < threadCount; i++)
         {
-            ThreadExecutionContext& ctx = g_ThreadContexts[i];
-            ctx.threadIx = i;
-            ctx.threadId = 0; // to be set later
-
-            InitializePageCoordinator(ctx.pageCoordinator, pageSize, virtualRunwayCursor);
-            InitializeQueue(ctx.pageCoordinator, ctx.taskQueue, MemoryMap::VIRT_ZONE_QUEUE_OFFSET, MemoryMap::VIRT_ZONE_QUEUE_SIZE);
+            GenericExecutionContext& ctx = g_ThreadContexts[i];
+            InitializePageCoordinator(ctx.pageCoordinator, pageSize, runwayCursor);
             InitializeArena(ctx.pageCoordinator, ctx.transientArena, MemoryMap::VIRT_ZONE_TA_OFFSET, MemoryMap::VIRT_ZONE_TA_BASELINE);
-            InitializeArena(ctx.pageCoordinator, ctx.componentPoolArena, MemoryMap::VIRT_ZONE_CPA_OFFSET, MemoryMap::VIRT_ZONE_CPA_BASELINE);
-            InitializeArena(ctx.pageCoordinator, ctx.sceneArena, MemoryMap::VIRT_ZONE_SA_OFFSET, MemoryMap::VIRT_ZONE_SA_BASELINE);
-
             delta::platform::Timer_Initialize(&ctx.perThreadTimer);
-            virtualRunwayCursor += ADDR_SLICE_PER_THREAD;
+            runwayCursor += MemoryMap::VIRT_ZONE_SPACE_LENGTH;
+        }
+
+        // Finish initializing main thread context
+        {
+            MainExecutionContext& ctx = reinterpret_cast<MainExecutionContext&>(g_ThreadContexts[0]);
+            ctx.generic.type = ThreadType::MAIN;
+            ctx.generic.threadIx = 0;
+            ctx.generic.threadId = delta::platform::Thread_GetCurrentId();
+        }
+
+        for (uint32_t i = 1; i < threadCount; i++)
+        {
+            WorkerExecutionContext& ctx = reinterpret_cast<WorkerExecutionContext&>(g_ThreadContexts[i]);
+            ctx.generic.type = ThreadType::WORKER;
+            ctx.generic.threadIx = i;
+            ctx.generic.threadId = 0xDEADBEEFu; // Initialized when thread starts
         }
 
         tl_CurrentThreadContext = &g_ThreadContexts[0];
@@ -181,7 +190,8 @@ namespace delta::core
         for (size_t i = 0; i < length; i++)
         {
             size_t targetIx = 1 + (i % g_WorkerCount);
-            TaskQueue_Push(&g_ThreadContexts[targetIx].taskQueue, tasks[i], payloads[i]);
+            WorkerExecutionContext& ctx = reinterpret_cast<WorkerExecutionContext&>(g_ThreadContexts[targetIx]);
+            TaskQueue_Push(&ctx.taskQueue, tasks[i], payloads[i]);
         }
     }
 
@@ -194,10 +204,11 @@ namespace delta::core
 
         while (consecutiveEmptyQueues < g_ThreadCount)
         {
+            WorkerExecutionContext& ctx = reinterpret_cast<WorkerExecutionContext&>(g_ThreadContexts[workerIx]);
             task_t task = nullptr;
             payload_t payload = nullptr;
 
-            if (TaskQueue_Steal(&g_ThreadContexts[workerIx].taskQueue, &task, &payload))
+            if (TaskQueue_Steal(&ctx.taskQueue, &task, &payload))
             {
                 consecutiveEmptyQueues = 0;
                 assert(task && payload);

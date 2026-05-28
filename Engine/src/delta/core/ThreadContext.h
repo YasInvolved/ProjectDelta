@@ -21,9 +21,9 @@ namespace delta::core
     void*   ThreadArena_Allocate(ThreadArena* arena, size_t size, size_t alignment = 8);
     void    ThreadArena_Reset(ThreadArena* arena);
 
-    template <typename T>
-    inline T* ThreadArena_AllocateForType(ThreadArena* arena, size_t alignment = 8)
-    {
-        return reinterpret_cast<T*>(ThreadArena_Allocate(arena, sizeof(T), alignment);
-    }
+    //template <typename T>
+    //inline T* ThreadArena_AllocateForType(ThreadArena* arena, size_t alignment = 8)
+    //{
+    //    return reinterpret_cast<T*>(ThreadArena_Allocate(arena, sizeof(T), alignment);
+    //}
 }
