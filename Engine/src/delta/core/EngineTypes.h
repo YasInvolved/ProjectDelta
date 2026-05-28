@@ -20,6 +20,7 @@ namespace delta::core
         uint8_t* backingMemory;
         size_t capacity;
         size_t offset;
+        size_t maxCapacity;
     };
 
     using task_t = void (*)(void*);

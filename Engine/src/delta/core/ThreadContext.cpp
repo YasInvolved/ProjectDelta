@@ -37,7 +37,7 @@ namespace delta::core
         queue.payloads = reinterpret_cast<void**>(payloadsArrayPtr);
     }
 
-    DLT_FORCE_INLINE static void InitializeArena(const ThreadPageCoordinator& pageCoord, ThreadArena& arena, size_t offset, size_t baseline)
+    DLT_FORCE_INLINE static void InitializeArena(const ThreadPageCoordinator& pageCoord, ThreadArena& arena, size_t offset, size_t baseline, size_t maxCapacity)
     {
         uint8_t* pTarget = pageCoord.virtualAddressBase + offset;
         void* res = delta::platform::Memory_Commit(pTarget, baseline);
@@ -48,6 +48,7 @@ namespace delta::core
         arena.backingMemory = pTarget;
         arena.capacity = baseline;
         arena.offset = 0;
+        arena.maxCapacity = maxCapacity;
     }
 
     void ThreadContext_Initialize(uint32_t threadCount, size_t pageSize)
@@ -93,7 +94,7 @@ namespace delta::core
             ctx.generic.threadIx = 0;
             ctx.generic.threadId = delta::platform::Thread_GetCurrentId();
 
-            InitializeArena(ctx.generic.pageCoordinator, ctx.persistentStorage, MemoryMap::Main::VIRT_ZONE_PS_OFFSET, MemoryMap::Main::VIRT_ZONE_PS_BASELINE);
+            InitializeArena(ctx.generic.pageCoordinator, ctx.persistentStorage, MemoryMap::Main::VIRT_ZONE_PS_OFFSET, MemoryMap::Main::VIRT_ZONE_PS_BASELINE, MemoryMap::Main::VIRT_ZONE_PS_SIZE);
         }
 
         for (uint32_t i = 1; i < threadCount; i++)
@@ -234,6 +235,12 @@ namespace delta::core
         uintptr_t alignedAddress = ALIGN(currentAddress, alignment);
         size_t padding = alignedAddress - currentAddress;
         size_t totalSpace = padding + size;
+
+        if (arena->offset + totalSpace > arena->maxCapacity)
+        {
+            // TODO: Handle it better. I don't know how yet, but I will know soon.
+            assert(false); // arena overflown
+        }
 
         if (totalSpace > arena->capacity)
         {
