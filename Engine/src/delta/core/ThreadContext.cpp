@@ -6,8 +6,49 @@
 
 namespace delta::core
 {
+    static uint32_t g_ThreadCount = 0;
+    static uint32_t g_WorkerCount = 0;
     static ThreadExecutionContext* g_ThreadContexts = nullptr;
     thread_local ThreadExecutionContext* tl_CurrentThreadContext = nullptr;
+
+    DLT_FORCE_INLINE static void InitializePageCoordinator(ThreadPageCoordinator& pageCoord, size_t pageSize, uint8_t* baseAddress)
+    {
+        pageCoord.pageSize = pageSize;
+        pageCoord.virtualAddressBase = baseAddress;
+        pageCoord.commitedOffset = 0;
+        pageCoord.reservedCapacity = MemoryMap::VIRT_ZONE_SPACE_LENGTH;
+    }
+
+    DLT_FORCE_INLINE static void InitializeQueue(const ThreadPageCoordinator& pageCoord, TaskQueue& queue, size_t offset, size_t memSize)
+    {
+        queue.size = memSize / TaskQueue::FIELD_SIZE;
+        queue.mask = queue.size - 1;
+        queue.top.store(0, std::memory_order_relaxed);
+        queue.bottom.store(0, std::memory_order_relaxed);
+
+        // a queue is commited in whole
+        uint8_t* pTarget = pageCoord.virtualAddressBase + offset;
+        void* p = delta::platform::Memory_Commit(pTarget, memSize);
+        assert(p != nullptr);
+
+        uint8_t* tasksArrayPtr = pTarget;
+        uint8_t* payloadsArrayPtr = pTarget + queue.size;
+        queue.tasks = reinterpret_cast<task_t*>(tasksArrayPtr);
+        queue.payloads = reinterpret_cast<void**>(payloadsArrayPtr);
+    }
+
+    DLT_FORCE_INLINE static void InitializeArena(const ThreadPageCoordinator& pageCoord, ThreadArena& arena, size_t offset, size_t baseline)
+    {
+        uint8_t* pTarget = pageCoord.virtualAddressBase + offset;
+        void* res = delta::platform::Memory_Commit(pTarget, baseline);
+        assert(res != nullptr);
+
+        // TODO: Lock
+
+        arena.backingMemory = pTarget;
+        arena.capacity = baseline;
+        arena.offset = 0;
+    }
 
     void ThreadContext_Initialize(uint32_t workerCount, size_t pageSize)
     {
@@ -25,7 +66,8 @@ namespace delta::core
         );
         assert(masterPoolBase != nullptr && "Failed to reserve master pool");
 
-
+        g_ThreadCount = workerCount;
+        g_WorkerCount = workerCount - 1;
         g_ThreadContexts = reinterpret_cast<ThreadExecutionContext*>(
             delta::platform::Memory_Commit(masterPoolBase, alignedContextArraySize)
         );
@@ -41,30 +83,17 @@ namespace delta::core
             ctx.threadIx = i;
             ctx.threadId = 0; // to be set later
 
-            ctx.pageCoordinator.pageSize = pageSize;
-            ctx.pageCoordinator.virtualAddressBase = virtualRunwayCursor;
-            ctx.pageCoordinator.commitedOffset = 0;
-            ctx.pageCoordinator.reservedCapacity = ADDR_SLICE_PER_THREAD;
-
-            virtualRunwayCursor += ADDR_SLICE_PER_THREAD;
-
-            uint8_t* initialPageTarget = ctx.pageCoordinator.virtualAddressBase + ctx.pageCoordinator.commitedOffset;
-            void* initialPageMemory = delta::platform::Memory_Commit(initialPageTarget, pageSize);
-            assert(initialPageMemory != nullptr && "Failed to commit initial arena page!");
-
-            if (!delta::platform::Memory_Lock(initialPageTarget, pageSize))
-                std::cout << "[DeltaEngine-Warning] Failed to lock memory resource: Thread-Local Arena " << i << "\n";
-
-            ctx.pageCoordinator.commitedOffset += pageSize;
-            ctx.transientArena.backingMemory = reinterpret_cast<uint8_t*>(initialPageTarget);
-            ctx.transientArena.capacity = pageSize;
-            ctx.transientArena.offset = 0;
+            InitializePageCoordinator(ctx.pageCoordinator, pageSize, virtualRunwayCursor);
+            InitializeQueue(ctx.pageCoordinator, ctx.taskQueue, MemoryMap::VIRT_ZONE_QUEUE_OFFSET, MemoryMap::VIRT_ZONE_QUEUE_SIZE);
+            InitializeArena(ctx.pageCoordinator, ctx.transientArena, MemoryMap::VIRT_ZONE_TA_OFFSET, MemoryMap::VIRT_ZONE_TA_BASELINE);
+            InitializeArena(ctx.pageCoordinator, ctx.componentPoolArena, MemoryMap::VIRT_ZONE_CPA_OFFSET, MemoryMap::VIRT_ZONE_CPA_BASELINE);
+            InitializeArena(ctx.pageCoordinator, ctx.sceneArena, MemoryMap::VIRT_ZONE_SA_OFFSET, MemoryMap::VIRT_ZONE_SA_BASELINE);
 
             delta::platform::Timer_Initialize(&ctx.perThreadTimer);
+            virtualRunwayCursor += ADDR_SLICE_PER_THREAD;
         }
 
         tl_CurrentThreadContext = &g_ThreadContexts[0];
-        g_TotalLockedBytes.fetch_add(totalThreads * pageSize + alignedContextArraySize, std::memory_order_relaxed);
     }
 
     void ThreadContext_Shutdown()
@@ -72,7 +101,121 @@ namespace delta::core
         delta::platform::Memory_Release(g_ThreadContexts);
     }
 
-    void* ThreadArena_Allocate(EngineArena* arena, size_t size, size_t alignment)
+    void TaskQueue_Push(TaskQueue* queue, task_t task, payload_t payload)
+    {
+        uint64_t b = queue->bottom.load(std::memory_order_relaxed);
+        uint64_t t = queue->top.load(std::memory_order_acquire);
+
+        if (b - t > queue->size)
+        {
+            // execute immadietely if the queue is full
+            task(payload);
+            return;
+        }
+
+        uint64_t ix = b & queue->mask;
+        queue->tasks[ix] = task;
+        queue->payloads[ix] = payload;
+
+        std::atomic_thread_fence(std::memory_order_release);
+        queue->bottom.store(b + 1, std::memory_order_relaxed);
+    }
+
+    bool TaskQueue_Pop(TaskQueue* queue, task_t* outTask, payload_t* outPayload)
+    {
+        uint64_t b = queue->bottom.load(std::memory_order_relaxed) - 1;
+        queue->bottom.store(b, std::memory_order_relaxed);
+
+        std::atomic_thread_fence(std::memory_order_seq_cst);
+        uint64_t t = queue->top.load(std::memory_order_relaxed);
+
+        if (t > b)
+        {
+            queue->bottom.store(b + 1, std::memory_order_relaxed);
+            return false;
+        }
+
+        uint64_t ix = b & queue->mask;
+        *outTask = queue->tasks[ix];
+        *outPayload = queue->payloads[ix];
+
+        if (t == b)
+        {
+            uint64_t expectedTop = t;
+            if (!queue->top.compare_exchange_strong(expectedTop, expectedTop + 1, std::memory_order_seq_cst, std::memory_order_relaxed))
+            {
+                queue->bottom.store(b + 1, std::memory_order_relaxed);
+                return false;
+            }
+
+            queue->bottom.store(b + 1, std::memory_order_relaxed);
+        }
+
+        return true;
+    }
+
+    bool TaskQueue_Steal(TaskQueue* queue, task_t* outTask, payload_t* outPayload)
+    {
+        uint64_t t = queue->top.load(std::memory_order_acquire);
+
+        std::atomic_thread_fence(std::memory_order_seq_cst);
+        uint64_t b = queue->bottom.load(std::memory_order_acquire);
+
+        if (t >= b)
+            return false;
+
+        uint64_t ix = t & queue->mask;
+        *outTask = queue->tasks[ix];
+        *outPayload = queue->payloads[ix];
+
+        if (!queue->top.compare_exchange_strong(t, t + 1, std::memory_order_seq_cst, std::memory_order_relaxed))
+            return false;
+
+        return true;
+    }
+
+    void Scheduler_ProcessTaskBatch(task_t* tasks, payload_t* payloads, size_t length)
+    {
+        assert(tl_CurrentThreadContext->threadIx == 0); // CAN BE EXECUTED ONLY ON MAIN THREAD!
+
+        for (size_t i = 0; i < length; i++)
+        {
+            size_t targetIx = 1 + (i % g_WorkerCount);
+            TaskQueue_Push(&g_ThreadContexts[targetIx].taskQueue, tasks[i], payloads[i]);
+        }
+    }
+
+    void Scheduler_Sync()
+    {
+        assert(tl_CurrentThreadContext->threadIx == 0); // CAN BE EXECUTED ONLY ON MAIN THREAD!
+
+        uint32_t workerIx = 1;
+        uint32_t consecutiveEmptyQueues = 0;
+
+        while (consecutiveEmptyQueues < g_ThreadCount)
+        {
+            task_t task = nullptr;
+            payload_t payload = nullptr;
+
+            if (TaskQueue_Steal(&g_ThreadContexts[workerIx].taskQueue, &task, &payload))
+            {
+                consecutiveEmptyQueues = 0;
+                assert(task && payload);
+
+                size_t snapshot = tl_CurrentThreadContext->transientArena.offset;
+                task(payload);
+                tl_CurrentThreadContext->transientArena.offset = snapshot;
+            }
+            else
+            {
+                consecutiveEmptyQueues++;
+            }
+
+            workerIx = 1 + (workerIx % g_WorkerCount);
+        }
+    }
+
+    void* ThreadArena_Allocate(ThreadArena* arena, size_t size, size_t alignment)
     {
         uintptr_t currentAddress = reinterpret_cast<uintptr_t>(arena->backingMemory) + arena->offset;
         uintptr_t alignedAddress = ALIGN(currentAddress, alignment);
@@ -101,7 +244,7 @@ namespace delta::core
         return ptr;
     }
 
-    void ThreadArena_Reset(EngineArena* arena)
+    void ThreadArena_Reset(ThreadArena* arena)
     {
         arena->offset = 0;
     }

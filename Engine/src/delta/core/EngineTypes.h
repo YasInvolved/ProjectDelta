@@ -4,6 +4,7 @@
 
 namespace delta::core
 {
+    // TODO: revise this structure and its purpose
     struct ThreadPageCoordinator
     {
         uint8_t* virtualAddressBase;
@@ -12,11 +13,27 @@ namespace delta::core
         size_t pageSize;
     };
 
-    struct EngineArena
+    struct ThreadArena
     {
         uint8_t* backingMemory;
         size_t capacity;
         size_t offset;
+    };
+
+    using task_t = void (*)(void*);
+    using payload_t = void*;
+    struct TaskQueue // SoA structure, Chase-Lev queue
+    {
+        alignas(64) std::atomic<uint64_t> top;
+        alignas(64) std::atomic<uint64_t> bottom;
+
+        alignas(64) uint64_t size;
+        uint64_t mask;
+
+        task_t* tasks;
+        payload_t* payloads;
+
+        static inline constexpr size_t FIELD_SIZE = sizeof(task_t) + sizeof(payload_t);
     };
 
     struct alignas(64) ThreadExecutionContext
@@ -25,9 +42,18 @@ namespace delta::core
         uint32_t threadId;
 
         ThreadPageCoordinator pageCoordinator;
-        EngineArena transientArena;
-        delta::platform::Timer perThreadTimer;
+        TaskQueue taskQueue;
+
+        alignas(64) ThreadArena transientArena;
+        ThreadArena componentPoolArena;
+        ThreadArena sceneArena;
+
+        alignas(64) delta::platform::Timer perThreadTimer;
+
+        uint8_t hardwarePadding[32];
     };
 
     extern thread_local ThreadExecutionContext* tl_CurrentThreadContext;
+
+    static_assert((sizeof(ThreadExecutionContext) % 64) == 0);
 }
