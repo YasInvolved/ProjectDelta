@@ -15,8 +15,8 @@ This project is currently a **work-in-progress,** moving away from standard libr
 ## 🧠 Memory Management
 The engine treats memory as a first-class citizen. Rather than relying on general-purpose heap allocations, it implements a suite of **Custom O(1) Allocators** to eliminate latency spikes:
 - **Linear/Stack Allocators:** For high-speed, frame-based temporary storage.
-- **Pool Allocators:** Providing constant-time allocation and deallocation for fixed-size game objects.
-- **Custom Slab Management:** Efficiently handling larger, persistent memory blocks without the unpredictability of `malloc` or `new`.
+- **Pool Allocators:** Providing constant-time allocation and deallocation for fixed-size game objects (to be implemented in the future).
+- **Custom Slab Management:** Efficiently handling larger, persistent memory blocks without the unpredictability of `malloc` or `new` (to be implemented in the future).
 
 ## 🛠 Tech Stack
 - **Language:** C++,
