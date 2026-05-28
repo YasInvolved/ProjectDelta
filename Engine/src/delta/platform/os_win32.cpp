@@ -178,11 +178,6 @@ namespace delta::platform
         g_osInfo.cpuLogicalProcessorCount = logicalProcessors;
         g_osInfo.cpuHasSMT = (logicalProcessors > physicalCores);
 
-        if (physicalCores > 1)
-            g_osInfo.maxEngineWorkerCount = physicalCores - 1;
-        else
-            g_osInfo.maxEngineWorkerCount = 1;
-
         bool privilegesSet = SetProcessPrivileges();
         if (!privilegesSet)
             std::cout << "[DeltaEngine-Warning] Failed to elevate SE_INC_WORKING_SET_NAME privilege. You may want to run the game as an administrator.\n";

@@ -24,7 +24,6 @@ namespace delta::platform
 
         uint32_t cpuPhysicalCoreCount;
         uint32_t cpuLogicalProcessorCount;
-        uint32_t maxEngineWorkerCount;
         uint32_t osPageSize;
 
         char cpuBrandString[sizeof(int) * 12 + 1];
