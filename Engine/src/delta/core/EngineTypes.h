@@ -58,7 +58,7 @@ namespace delta::core
         GenericExecutionContext generic;
 
         // ROLE TRAITS
-        // TODO: persistent storage
+        ThreadArena persistentStorage;
     };
 
     struct alignas(64) WorkerExecutionContext

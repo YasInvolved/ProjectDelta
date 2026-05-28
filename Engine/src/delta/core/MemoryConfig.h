@@ -13,7 +13,11 @@ namespace delta::core
 
         namespace Main
         {
+            inline constexpr size_t VIRT_ZONE_PS_OFFSET = VIRT_ZONE_TA_OFFSET + VIRT_ZONE_TA_SIZE;
+            inline constexpr size_t VIRT_ZONE_PS_SIZE = (1ull << 31); // 2GB
+            inline constexpr size_t VIRT_ZONE_PS_BASELINE = (1ull << 26); // 64MB
 
+            inline constexpr size_t VIRT_ZONE_BASELINE_SUM = VIRT_ZONE_PS_SIZE;
         }
 
         namespace Worker

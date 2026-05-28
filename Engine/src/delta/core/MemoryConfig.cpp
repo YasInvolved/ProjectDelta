@@ -19,7 +19,7 @@ namespace delta::core
         // formula optimized on paper to limit arithmetic that has to be done
         // precompute whats possible to save some runtime
         static constexpr size_t PRECOMPUTABLE_CONST = THREAD_EXECUTION_CONTEXT_SIZE + MemoryMap::VIRT_ZONE_TA_BASELINE + MemoryMap::Worker::VIRT_ZONE_BASELINE_SUM;
-        size_t rawLockBudget = totalThreads * PRECOMPUTABLE_CONST - MemoryMap::Worker::VIRT_ZONE_BASELINE_SUM;
+        size_t rawLockBudget = (totalThreads * PRECOMPUTABLE_CONST) + MemoryMap::Main::VIRT_ZONE_BASELINE_SUM - MemoryMap::Worker::VIRT_ZONE_BASELINE_SUM;
 
         g_MemoryConfig.activeLockAllocation = (rawLockBudget + (pageSize - 1)) & ~(pageSize - 1);
         g_MemoryConfig.globalPoolSize = g_MemoryConfig.maxAllowedPhysical - g_MemoryConfig.activeLockAllocation;

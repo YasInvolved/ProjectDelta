@@ -92,6 +92,8 @@ namespace delta::core
             ctx.generic.type = ThreadType::MAIN;
             ctx.generic.threadIx = 0;
             ctx.generic.threadId = delta::platform::Thread_GetCurrentId();
+
+            InitializeArena(ctx.generic.pageCoordinator, ctx.persistentStorage, MemoryMap::Main::VIRT_ZONE_PS_OFFSET, MemoryMap::Main::VIRT_ZONE_PS_BASELINE);
         }
 
         for (uint32_t i = 1; i < threadCount; i++)
