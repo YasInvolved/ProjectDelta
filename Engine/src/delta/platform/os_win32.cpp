@@ -288,6 +288,11 @@ namespace delta::platform
 
         return (static_cast<double>(elapsedTicks) * 1000000.0) / static_cast<double>(internal->freq);
     }
+
+    uint32_t Thread_GetCurrentId()
+    {
+        return GetCurrentThreadId();
+    }
 }
 
 #endif

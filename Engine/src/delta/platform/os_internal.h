@@ -41,4 +41,7 @@ namespace delta::platform
     int64_t Timer_GetTimestamp();
     double  Timer_TicksToMilliseconds(const Timer* timer, int64_t startTicks, int64_t endTicks);
     double  Timer_TicksToMicroseconds(const Timer* timer, int64_t startTicks, int64_t endTicks);
+
+    // Thread API
+    uint32_t Thread_GetCurrentId();
 }
