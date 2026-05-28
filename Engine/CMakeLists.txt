@@ -42,3 +42,9 @@ target_include_directories(ProjectDelta
    PUBLIC "include"
    PRIVATE "src"
 )
+
+if (MSVC)
+   target_compile_options(ProjectDelta PRIVATE /GR-)
+else()
+   target_compile_options(ProjectDelta PRIVATE -fno-rtti)
+endif()
