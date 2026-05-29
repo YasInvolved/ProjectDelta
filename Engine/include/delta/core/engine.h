@@ -18,6 +18,8 @@
 
 namespace delta::Engine
 {
+    enum class AllocationType : uint8_t { TRANSIENT, PERSISTENT };
+
     struct Context
     {
         bool isRunning;
@@ -27,6 +29,9 @@ namespace delta::Engine
     typedef void (*GameUpdateFunc)(Context*);
     typedef void (*GameShutdownFunc)(Context*);
 
-    void DLT_API Initialize(Context& context);
-    void DLT_API Shutdown(Context& context);
+    DLT_API void Initialize(Context& context);
+    DLT_API void Shutdown(Context& context);
+
+    [[nodiscard]] DLT_API void* Allocate(size_t size, AllocationType type, size_t alignment = 8) noexcept;
+    DLT_API void Free(void* ptr) noexcept;
 }

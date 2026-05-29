@@ -27,7 +27,7 @@ add_library(ProjectDelta SHARED
    "src/delta/core/ThreadContext.cpp"
    "src/delta/core/MemoryConfig.h"
    "src/delta/core/MemoryConfig.cpp"
-)
+ )
 
 target_compile_definitions(ProjectDelta
    PRIVATE DLT_EXPORT_SYMBOLS

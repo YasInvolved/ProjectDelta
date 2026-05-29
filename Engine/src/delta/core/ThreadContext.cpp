@@ -6,6 +6,9 @@
 
 namespace delta::core
 {
+    uintptr_t g_MasterSlabStart = 0;
+    uintptr_t g_MasterSlabEnd = 0;
+
     static uint32_t g_ThreadCount = 0;
     static uint32_t g_WorkerCount = 0;
     static GenericExecutionContext* g_ThreadContexts = nullptr;
@@ -68,6 +71,9 @@ namespace delta::core
         );
         assert(masterPoolBase != nullptr && "Failed to reserve master pool");
 
+        g_MasterSlabStart = reinterpret_cast<uintptr_t>(masterPoolBase);
+        g_MasterSlabEnd = g_MasterSlabStart + masterPoolSize;
+
         g_ThreadContexts = reinterpret_cast<GenericExecutionContext*>(
             delta::platform::Memory_Commit(masterPoolBase, alignedContextArraySize)
         );
@@ -82,7 +88,7 @@ namespace delta::core
         {
             GenericExecutionContext& ctx = g_ThreadContexts[i];
             InitializePageCoordinator(ctx.pageCoordinator, pageSize, runwayCursor);
-            InitializeArena(ctx.pageCoordinator, ctx.transientArena, MemoryMap::VIRT_ZONE_TA_OFFSET, MemoryMap::VIRT_ZONE_TA_BASELINE);
+            InitializeArena(ctx.pageCoordinator, ctx.transientArena, MemoryMap::VIRT_ZONE_TA_OFFSET, MemoryMap::VIRT_ZONE_TA_BASELINE, MemoryMap::VIRT_ZONE_TA_SIZE);
             delta::platform::Timer_Initialize(&ctx.perThreadTimer);
             runwayCursor += MemoryMap::VIRT_ZONE_SPACE_LENGTH;
         }

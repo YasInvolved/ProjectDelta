@@ -4,8 +4,6 @@
 
 namespace delta::core
 {
-    struct Empty_t{};
-
     // TODO: revise this structure and its purpose
     struct ThreadPageCoordinator
     {
@@ -93,6 +91,8 @@ namespace delta::core
     inline constexpr size_t THREAD_EXECUTION_CONTEXT_SIZE = (THREAD_EXECUTION_CONTEXT_STRIDE + 63) & ~(63);
 
     // EXTERN VARIABLES
+    extern uintptr_t g_MasterSlabStart;
+    extern uintptr_t g_MasterSlabEnd;
     extern thread_local GenericExecutionContext* tl_CurrentThreadContext;
 
     // INLINE HELPER FUNCTIONS
@@ -114,6 +114,12 @@ namespace delta::core
 
         assert(false); // CRITICAL: Casting to invalid type
         return nullptr;
+    }
+
+    inline bool IsCustomAllocated(void* ptr)
+    {
+        // range scan
+        return g_MasterSlabStart <= reinterpret_cast<uintptr_t>(ptr) && reinterpret_cast<uintptr_t>(ptr) <= g_MasterSlabEnd;
     }
 
     inline bool IsMainThread()

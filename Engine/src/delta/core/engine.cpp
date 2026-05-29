@@ -21,21 +21,51 @@
 #include <delta/core/MemoryConfig.h>
 #include <delta/core/EngineTypes.h>
 
-void delta::Engine::Initialize(Context& context)
+namespace delta::Engine
 {
-    context.isRunning = true;
-    delta::platform::Initialize();
-    const auto* osInfo = delta::platform::getOSInfo();
-    const auto memStatus = delta::platform::getMemoryStatus();
+    void Initialize(Context& context)
+    {
+        context.isRunning = true;
+        delta::platform::Initialize();
+        const auto* osInfo = delta::platform::getOSInfo();
+        const auto memStatus = delta::platform::getMemoryStatus();
 
-    uint32_t totalThreads = osInfo->cpuPhysicalCoreCount;
-    uint32_t pageSize = osInfo->osPageSize;
-    delta::core::MemoryConfig_Initialize(memStatus.physicalInstalled, pageSize, totalThreads);
-    delta::core::ThreadContext_Initialize(totalThreads, pageSize);
-}
+        uint32_t totalThreads = osInfo->cpuPhysicalCoreCount;
+        uint32_t pageSize = osInfo->osPageSize;
+        delta::core::MemoryConfig_Initialize(memStatus.physicalInstalled, pageSize, totalThreads);
+        delta::core::ThreadContext_Initialize(totalThreads, pageSize);
+    }
 
-void delta::Engine::Shutdown(Context& context)
-{
-    delta::core::ThreadContext_Shutdown();
-    delta::core::MemoryConfig_Shutdown();
+    void Shutdown(Context& context)
+    {
+        delta::core::ThreadContext_Shutdown();
+        delta::core::MemoryConfig_Shutdown();
+    }
+
+    [[nodiscard]] void* Allocate(size_t size, AllocationType type, size_t alignment) noexcept
+    {
+        if (!core::tl_CurrentThreadContext)
+        {
+            return ::malloc(size);
+        }
+
+        if (type == AllocationType::TRANSIENT)
+        {
+            return core::ThreadArena_Allocate(&core::tl_CurrentThreadContext->transientArena, size, alignment);
+        }
+        else if (type == AllocationType::PERSISTENT && core::IsMainThread())
+        {
+            core::MainExecutionContext* ctx = reinterpret_cast<core::MainExecutionContext*>(core::tl_CurrentThreadContext);
+            return core::ThreadArena_Allocate(&ctx->persistentStorage, size, alignment);
+        }
+
+        assert(false); // CRITICAL FAILURE: Workers cannot allocate persistent memory!
+        return nullptr;
+    }
+
+    void Free(void* ptr) noexcept
+    {
+        if (!core::IsCustomAllocated(ptr))
+            ::free(ptr);
+    }
 }
