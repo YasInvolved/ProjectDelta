@@ -31,6 +31,7 @@ namespace delta::core
     static void WorkerProc(void* args)
     {
         GenericExecutionContext* generic = reinterpret_cast<GenericExecutionContext*>(args);
+        generic->threadId = delta::platform::Thread_GetCurrentId();
         ThreadContext_SetCurrent(generic);
 
         WorkerExecutionContext& ctx = *ThreadContextCast<WorkerExecutionContext>(generic);
@@ -63,14 +64,18 @@ namespace delta::core
     {
         s_WorkerCount = count;
 
-        ThreadCreateInfo c = { .fn = WorkerProc, .args = nullptr };
+        // TODO: Take a look at native thread api and figure out how this could be done better
+        // TODO: Set thread affinity mask
         s_Threads = new(delta::Engine::AllocationType::PERSISTENT) ThreadHandle[count];
+        ThreadCreateInfo* cs = new(delta::Engine::AllocationType::TRANSIENT) ThreadCreateInfo[count];
 
         for (uint32_t i = 0; i < count; i++)
         {
             // looping through thread indices, workers start from ix=1
-            c.args = ThreadContext_GetForIndex(i+1);
-            s_Threads[i] = delta::platform::Thread_Create(&c);
+            ThreadCreateInfo& info = cs[i];
+            info.fn = WorkerProc;
+            info.args = ThreadContext_GetForIndex(i + 1);
+            s_Threads[i] = delta::platform::Thread_Create(&info);
         }
     }
 

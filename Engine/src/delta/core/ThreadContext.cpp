@@ -133,6 +133,7 @@ namespace delta::core
             ctx.generic.threadId = 0xDEADBEEFu; // Initialized when thread starts
             ctx.isAsleep.store(false, std::memory_order_relaxed);
             ctx.shouldClose.store(false, std::memory_order_relaxed);
+            ctx.sleepSemaphore = delta::platform::Sync_CreateSemaphore();
 
             InitializeQueue(ctx.generic.pageCoordinator, ctx.taskQueue, MemoryMap::Worker::VIRT_ZONE_QUEUE_OFFSET, MemoryMap::Worker::VIRT_ZONE_QUEUE_SIZE);
         }
