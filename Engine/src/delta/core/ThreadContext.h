@@ -8,6 +8,9 @@ namespace delta::core
     void ThreadContext_Initialize(uint32_t workerCount, size_t pageSize);
     void ThreadContext_Shutdown();
 
+    // Getters
+    GenericExecutionContext* ThreadContext_GetCurrent() noexcept;
+
     // Thread Task Queue API
     void TaskQueue_Push(TaskQueue* queue, task_t task, payload_t payload);
     bool TaskQueue_Pop(TaskQueue* queue, task_t* outTask, payload_t* outPayload);

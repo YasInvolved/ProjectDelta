@@ -12,7 +12,7 @@ namespace delta::core
     static uint32_t g_ThreadCount = 0;
     static uint32_t g_WorkerCount = 0;
     static GenericExecutionContext* g_ThreadContexts = nullptr;
-    thread_local GenericExecutionContext* tl_CurrentThreadContext = nullptr;
+    static thread_local GenericExecutionContext* tl_CurrentThreadContext = nullptr;
 
     DLT_FORCE_INLINE static void InitializePageCoordinator(ThreadPageCoordinator& pageCoord, size_t pageSize, uint8_t* baseAddress)
     {
@@ -117,6 +117,11 @@ namespace delta::core
     void ThreadContext_Shutdown()
     {
         delta::platform::Memory_Release(g_ThreadContexts);
+    }
+
+    GenericExecutionContext* ThreadContext_GetCurrent() noexcept
+    {
+        return tl_CurrentThreadContext;
     }
 
     void TaskQueue_Push(TaskQueue* queue, task_t task, payload_t payload)

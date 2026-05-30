@@ -23,6 +23,8 @@
 
 namespace delta::Engine
 {
+    using GenericExecutionContext = delta::core::GenericExecutionContext;
+
     void Initialize(Context& context)
     {
         context.isRunning = true;
@@ -44,18 +46,20 @@ namespace delta::Engine
 
     [[nodiscard]] void* Allocate(size_t size, AllocationType type, size_t alignment) noexcept
     {
-        if (!core::tl_CurrentThreadContext)
+        GenericExecutionContext* threadContext = delta::core::ThreadContext_GetCurrent();
+
+        if (!threadContext)
         {
             return ::malloc(size);
         }
 
         if (type == AllocationType::TRANSIENT)
         {
-            return core::ThreadArena_Allocate(&core::tl_CurrentThreadContext->transientArena, size, alignment);
+            return core::ThreadArena_Allocate(&threadContext->transientArena, size, alignment);
         }
         else if (type == AllocationType::PERSISTENT && core::IsMainThread())
         {
-            core::MainExecutionContext* ctx = reinterpret_cast<core::MainExecutionContext*>(core::tl_CurrentThreadContext);
+            core::MainExecutionContext* ctx = reinterpret_cast<core::MainExecutionContext*>(threadContext);
             return core::ThreadArena_Allocate(&ctx->persistentStorage, size, alignment);
         }
 
