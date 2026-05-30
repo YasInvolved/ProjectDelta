@@ -21,6 +21,15 @@ namespace delta::platform
     struct BrandStringCall;
     struct Timer_Internal;
 
+    struct ThreadCreateInfo
+    {
+        void (*fn)(void*);
+        void* args;
+    };
+
+    struct Thread;
+    using ThreadHandle = Thread*;
+
     struct Timer
     {
         alignas(8) uint8_t opaqueData[32];
@@ -44,4 +53,8 @@ namespace delta::platform
 
     // Thread API
     uint32_t Thread_GetCurrentId();
+    uint32_t Thread_GetId(ThreadHandle thread);
+    ThreadHandle Thread_Create(ThreadCreateInfo* createInfo);
+    void Thread_Join(ThreadHandle thread);
+    void Thread_JoinMultiple(ThreadHandle* threads, uint32_t count);
 }

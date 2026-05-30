@@ -43,6 +43,14 @@ namespace delta::platform
         int64_t baseStartTime;
     };
 
+    struct Thread
+    {
+        HANDLE hThread;
+    };
+
+    static_assert(std::is_standard_layout_v<Thread>, "PAL layout broken: Must be standard layout!");
+    static_assert(sizeof(Thread) == sizeof(HANDLE), "PAL layout broken: Size mismatch!");
+
     enum CpuArchitecture : WORD
     {
         INTEL = 0,
@@ -284,9 +292,48 @@ namespace delta::platform
         return (static_cast<double>(elapsedTicks) * 1000000.0) / static_cast<double>(internal->freq);
     }
 
+    static DWORD WINAPI DeltaThreadProc(LPVOID lParam)
+    {
+        ThreadCreateInfo* createInfo = reinterpret_cast<ThreadCreateInfo*>(lParam);
+        createInfo->fn(createInfo->args);
+        return 0;
+    }
+
     uint32_t Thread_GetCurrentId()
     {
         return GetCurrentThreadId();
+    }
+
+    uint32_t Thread_GetId(ThreadHandle thread)
+    {
+        return GetThreadId(thread->hThread);
+    }
+
+    ThreadHandle Thread_Create(ThreadCreateInfo* createInfo)
+    {
+        ThreadHandle thread = new(delta::Engine::AllocationType::PERSISTENT) ThreadHandle{};
+        thread->hThread = CreateThread(nullptr, 0, DeltaThreadProc, (void*)createInfo, 0, 0);
+        if (thread->hThread == 0)
+            return nullptr;
+
+        return thread;
+    }
+
+    void Thread_Join(ThreadHandle thread)
+    {
+        if (!thread)
+            return;
+
+        DWORD waitResult = WaitForSingleObject(thread->hThread, INFINITE);
+        CloseHandle(thread->hThread);
+    }
+
+    void Thread_JoinMultiple(ThreadHandle* threads, uint32_t count)
+    {
+        if (!threads)
+            return;
+
+        WaitForMultipleObjects(count, reinterpret_cast<HANDLE*>(threads), TRUE, INFINITE);
     }
 }
 
