@@ -316,12 +316,12 @@ namespace delta::platform
 
     ThreadHandle Thread_Create(ThreadCreateInfo* createInfo)
     {
-        ThreadHandle thread = new(delta::Engine::AllocationType::PERSISTENT) ThreadHandle{};
+        Thread* thread = new(delta::Engine::AllocationType::PERSISTENT) Thread{};
         thread->hThread = CreateThread(nullptr, 0, DeltaThreadProc, (void*)createInfo, 0, 0);
         if (thread->hThread == 0)
             return nullptr;
 
-        return thread;
+        return static_cast<ThreadHandle>(thread);
     }
 
     void Thread_Join(ThreadHandle thread)
@@ -348,7 +348,7 @@ namespace delta::platform
         if (s->hSemaphore == nullptr)
             return nullptr;
         
-        return s;
+        return static_cast<SemaphoreHandle>(s);
     }
 
     void Sync_DestroySemaphore(SemaphoreHandle sem)
