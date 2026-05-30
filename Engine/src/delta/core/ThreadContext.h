@@ -26,6 +26,8 @@ namespace delta::core
 
     // Getters
     GenericExecutionContext* ThreadContext_GetCurrent() noexcept;
+    GenericExecutionContext* ThreadContext_GetForIndex(uint32_t ix) noexcept;
+    void ThreadContext_SetCurrent(GenericExecutionContext* ctx) noexcept;
 
     // Thread Task Queue API
     void TaskQueue_Push(TaskQueue* queue, task_t task, payload_t payload);

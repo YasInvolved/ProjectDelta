@@ -150,6 +150,16 @@ namespace delta::core
         return tl_CurrentThreadContext;
     }
 
+    GenericExecutionContext* ThreadContext_GetForIndex(uint32_t i) noexcept
+    {
+        return &GetExecutionContext<GenericExecutionContext>(i);
+    }
+
+    void ThreadContext_SetCurrent(GenericExecutionContext* ctx) noexcept
+    {
+        tl_CurrentThreadContext = ctx;
+    }
+
     void TaskQueue_Push(TaskQueue* queue, task_t task, payload_t payload)
     {
         uint64_t b = queue->bottom.load(std::memory_order_relaxed);
