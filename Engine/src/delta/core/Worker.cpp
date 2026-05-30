@@ -49,8 +49,8 @@ namespace delta::core
                 continue;
             }
 
+            ThreadArena_Reset(GetTransientArena());
             ctx.isAsleep.store(true, std::memory_order_release);
-
             if (!ctx.shouldClose.load(std::memory_order_acquire))
             {
                 delta::platform::Sync_WaitSemaphore(ctx.sleepSemaphore);

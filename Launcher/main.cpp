@@ -172,6 +172,7 @@ int main(int argc, char** argv)
             continue;
         }
 
+        delta::Engine::Update(g_context);
         game.updateFn(&g_context);
     }
 

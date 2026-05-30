@@ -280,6 +280,13 @@ namespace delta::core
         }
     }
 
+    ThreadArena* GetTransientArena() noexcept
+    {
+        auto* ctx = tl_CurrentThreadContext;
+        assert(ctx);
+        return &ctx->transientArena;
+    }
+
     void* ThreadArena_Allocate(ThreadArena* arena, size_t size, size_t alignment)
     {
         uintptr_t currentAddress = reinterpret_cast<uintptr_t>(arena->backingMemory) + arena->offset;

@@ -39,8 +39,10 @@ namespace delta::core
     void Scheduler_Sync();
 
     // Engine Arena API
-    void*   ThreadArena_Allocate(ThreadArena* arena, size_t size, size_t alignment = 8);
-    void    ThreadArena_Reset(ThreadArena* arena);
+    ThreadArena*    GetTransientArena() noexcept;
+    void*           ThreadArena_Allocate(ThreadArena* arena, size_t size, size_t alignment = 8);
+    void            ThreadArena_Reset(ThreadArena* arena);
+    void            ThreadArena_Reset(ThreadArena* arena);
 
     // Inline Helpers
     template <ExecutionContext TargetType>

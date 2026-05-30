@@ -42,6 +42,13 @@ namespace delta::Engine
         delta::core::Worker_Init(totalThreads-1);
     }
 
+    void Update(Context& context)
+    {
+        // blah blah blah
+        // do something
+        delta::core::ThreadArena_Reset(delta::core::GetTransientArena());
+    }
+
     void Shutdown(Context& context)
     {
         delta::core::Worker_Shutdown();

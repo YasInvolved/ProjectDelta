@@ -28,5 +28,6 @@ namespace delta::Engine
     typedef void (*GameShutdownFunc)(Context*);
 
     DLT_API void Initialize(Context& context);
+    DLT_API void Update(Context& context);
     DLT_API void Shutdown(Context& context);
 }
