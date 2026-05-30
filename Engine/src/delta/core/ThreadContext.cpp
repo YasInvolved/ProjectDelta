@@ -162,8 +162,8 @@ namespace delta::core
 
     void TaskQueue_Push(TaskQueue* queue, task_t task, payload_t payload)
     {
-        uint64_t b = queue->bottom.load(std::memory_order_relaxed);
-        uint64_t t = queue->top.load(std::memory_order_acquire);
+        queue_index_t b = queue->bottom.load(std::memory_order_relaxed);
+        queue_index_t t = queue->top.load(std::memory_order_acquire);
 
         if (b - t > queue->size)
         {
@@ -172,7 +172,7 @@ namespace delta::core
             return;
         }
 
-        uint64_t ix = b & queue->mask;
+        queue_index_t ix = b & queue->mask;
         queue->tasks[ix] = task;
         queue->payloads[ix] = payload;
 
@@ -182,11 +182,11 @@ namespace delta::core
 
     bool TaskQueue_Pop(TaskQueue* queue, task_t* outTask, payload_t* outPayload)
     {
-        uint64_t b = queue->bottom.load(std::memory_order_relaxed) - 1;
+        queue_index_t b = queue->bottom.load(std::memory_order_relaxed) - 1;
         queue->bottom.store(b, std::memory_order_relaxed);
 
         std::atomic_thread_fence(std::memory_order_seq_cst);
-        uint64_t t = queue->top.load(std::memory_order_relaxed);
+        queue_index_t t = queue->top.load(std::memory_order_relaxed);
 
         if (t > b)
         {
@@ -194,13 +194,13 @@ namespace delta::core
             return false;
         }
 
-        uint64_t ix = b & queue->mask;
+        queue_index_t ix = b & queue->mask;
         *outTask = queue->tasks[ix];
         *outPayload = queue->payloads[ix];
 
         if (t == b)
         {
-            uint64_t expectedTop = t;
+            queue_index_t expectedTop = t;
             if (!queue->top.compare_exchange_strong(expectedTop, expectedTop + 1, std::memory_order_seq_cst, std::memory_order_relaxed))
             {
                 queue->bottom.store(b + 1, std::memory_order_relaxed);
@@ -215,15 +215,15 @@ namespace delta::core
 
     bool TaskQueue_Steal(TaskQueue* queue, task_t* outTask, payload_t* outPayload)
     {
-        uint64_t t = queue->top.load(std::memory_order_acquire);
+        queue_index_t t = queue->top.load(std::memory_order_acquire);
 
         std::atomic_thread_fence(std::memory_order_seq_cst);
-        uint64_t b = queue->bottom.load(std::memory_order_acquire);
+        queue_index_t b = queue->bottom.load(std::memory_order_acquire);
 
         if (t >= b)
             return false;
 
-        uint64_t ix = t & queue->mask;
+        queue_index_t ix = t & queue->mask;
         *outTask = queue->tasks[ix];
         *outPayload = queue->payloads[ix];
 

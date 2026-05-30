@@ -39,13 +39,14 @@ namespace delta::core
 
     using task_t = void (*)(void*);
     using payload_t = void*;
+    using queue_index_t = int64_t;
     struct TaskQueue // SoA structure, Chase-Lev queue
     {
-        alignas(64) std::atomic<uint64_t> top;
-        alignas(64) std::atomic<uint64_t> bottom;
+        alignas(64) std::atomic<queue_index_t> top;
+        alignas(64) std::atomic<queue_index_t> bottom;
 
-        alignas(64) uint64_t size;
-        uint64_t mask;
+        alignas(64) queue_index_t size;
+        queue_index_t mask;
 
         task_t* tasks;
         payload_t* payloads;
