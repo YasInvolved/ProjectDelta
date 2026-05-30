@@ -225,13 +225,16 @@ namespace delta::core
 
     void Scheduler_ProcessTaskBatch(task_t* tasks, payload_t* payloads, size_t length)
     {
-        assert(tl_CurrentThreadContext->threadIx == 0); // CAN BE EXECUTED ONLY ON MAIN THREAD!
+        assert(IsMainThread()); // CAN BE EXECUTED ONLY ON MAIN THREAD!
 
         for (size_t i = 0; i < length; i++)
         {
             size_t targetIx = 1 + (i % g_WorkerCount);
-            WorkerExecutionContext& ctx = reinterpret_cast<WorkerExecutionContext&>(g_ThreadContexts[targetIx]);
+            WorkerExecutionContext& ctx = GetExecutionContext<WorkerExecutionContext>(targetIx);
             TaskQueue_Push(&ctx.taskQueue, tasks[i], payloads[i]);
+
+            if (ctx.isAsleep.load(std::memory_order_acquire))
+                delta::platform::Sync_SignalSemaphore(ctx.sleepSemaphore);
         }
     }
 
@@ -244,7 +247,7 @@ namespace delta::core
 
         while (consecutiveEmptyQueues < g_ThreadCount)
         {
-            WorkerExecutionContext& ctx = reinterpret_cast<WorkerExecutionContext&>(g_ThreadContexts[workerIx]);
+            WorkerExecutionContext& ctx = GetExecutionContext<WorkerExecutionContext>(workerIx);
             task_t task = nullptr;
             payload_t payload = nullptr;
 
