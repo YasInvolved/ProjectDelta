@@ -15,6 +15,7 @@
  */
 
 #include <delta/core/engine.h>
+#include <delta/core/memory.h>
 #include <delta/platform/os.h>
 #include <delta/platform/os_internal.h>
 #include <delta/core/ThreadContext.h>

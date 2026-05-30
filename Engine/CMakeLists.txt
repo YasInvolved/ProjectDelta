@@ -15,6 +15,7 @@
 add_library(ProjectDelta SHARED
    "src/delta/core/engine.cpp"
    "include/delta/core/engine.h"
+   "include/delta/core/memory.h"
    "include/delta/definitions.h"
    "src/delta/platform/os_internal.h"
    "src/delta/platform/os_win32.cpp"
