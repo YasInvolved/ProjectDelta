@@ -21,9 +21,42 @@ namespace delta::core
     void*   ThreadArena_Allocate(ThreadArena* arena, size_t size, size_t alignment = 8);
     void    ThreadArena_Reset(ThreadArena* arena);
 
-    //template <typename T>
-    //inline T* ThreadArena_AllocateForType(ThreadArena* arena, size_t alignment = 8)
-    //{
-    //    return reinterpret_cast<T*>(ThreadArena_Allocate(arena, sizeof(T), alignment);
-    //}
+    // Inline Helpers
+    template <ExecutionContext TargetType>
+    [[nodiscard]] inline TargetType* ThreadContextCast(GenericExecutionContext* ctx)
+    {
+        if (!ctx) return nullptr;
+
+        if constexpr (std::is_same_v<TargetType, MainExecutionContext>)
+        {
+            if (ctx->type == ThreadType::MAIN)
+                return reinterpret_cast<TargetType*>(ctx);
+        }
+        else if constexpr (std::is_same_v<TargetType, WorkerExecutionContext>)
+        {
+            if (ctx->type == ThreadType::WORKER)
+                return reinterpret_cast<TargetType*>(ctx);
+        }
+
+        assert(false); // CRITICAL: Casting to invalid type
+        return nullptr;
+    }
+
+    inline bool IsCustomAllocated(void* ptr)
+    {
+        // range scan
+        return g_MasterSlabStart <= reinterpret_cast<uintptr_t>(ptr) && reinterpret_cast<uintptr_t>(ptr) <= g_MasterSlabEnd;
+    }
+
+    inline bool IsMainThread()
+    {
+        auto* ctx = ThreadContext_GetCurrent();
+        return ctx && ctx->type == ThreadType::MAIN;
+    }
+
+    inline bool IsWorkerThread()
+    {
+        auto* ctx = ThreadContext_GetCurrent();
+        return ctx && ctx->type == ThreadType::WORKER;
+    }
 }

@@ -68,67 +68,17 @@ namespace delta::core
         TaskQueue taskQueue;
     };
 
-    // TODO: Remove, obsolete type.
-    struct alignas(64) ThreadExecutionContext
-    {
-        uint32_t threadIx;
-        uint32_t threadId;
-
-        ThreadPageCoordinator pageCoordinator;
-        TaskQueue taskQueue;
-
-        alignas(64) ThreadArena transientArena;
-        ThreadArena componentPoolArena;
-        ThreadArena sceneArena;
-
-        alignas(64) delta::platform::Timer perThreadTimer;
-
-        uint8_t hardwarePadding[32];
-    };
+    template <typename T>
+    concept ExecutionContext =
+        std::is_same_v<std::remove_cvref_t<T>, GenericExecutionContext> ||
+        std::is_same_v<std::remove_cvref_t<T>, MainExecutionContext> ||
+        std::is_same_v<std::remove_cvref_t<T>, WorkerExecutionContext>;
 
     // COMPILE TIME CONSTANTS
     inline constexpr size_t THREAD_EXECUTION_CONTEXT_STRIDE = std::max<size_t>(sizeof(MainExecutionContext), sizeof(WorkerExecutionContext));
     inline constexpr size_t THREAD_EXECUTION_CONTEXT_SIZE = (THREAD_EXECUTION_CONTEXT_STRIDE + 63) & ~(63);
 
-    // EXTERN VARIABLES
+    // EXTERN VARIABLES & FUNCTIONS
     extern uintptr_t g_MasterSlabStart;
     extern uintptr_t g_MasterSlabEnd;
-    extern thread_local GenericExecutionContext* tl_CurrentThreadContext;
-
-    // INLINE HELPER FUNCTIONS
-    template <typename TargetType>
-    [[nodiscard]] inline TargetType* ThreadContextCast(GenericExecutionContext* ctx)
-    {
-        if (!ctx) return nullptr;
-
-        if constexpr (std::is_same_v<TargetType, MainExecutionContext>)
-        {
-            if (ctx->type == ThreadType::MAIN)
-                return reinterpret_cast<TargetType*>(ctx);
-        }
-        else if constexpr (std::is_same_v<TargetType, WorkerExecutionContext>)
-        {
-            if (ctx->type == ThreadType::WORKER)
-                return reinterpret_cast<TargetType*>(ctx);
-        }
-
-        assert(false); // CRITICAL: Casting to invalid type
-        return nullptr;
-    }
-
-    inline bool IsCustomAllocated(void* ptr)
-    {
-        // range scan
-        return g_MasterSlabStart <= reinterpret_cast<uintptr_t>(ptr) && reinterpret_cast<uintptr_t>(ptr) <= g_MasterSlabEnd;
-    }
-
-    inline bool IsMainThread()
-    {
-        return tl_CurrentThreadContext && tl_CurrentThreadContext->type == ThreadType::MAIN;
-    }
-
-    inline bool IsWorkerThread()
-    {
-        return tl_CurrentThreadContext && tl_CurrentThreadContext->type == ThreadType::WORKER;
-    }
 }
