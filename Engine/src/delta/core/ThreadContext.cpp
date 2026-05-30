@@ -54,6 +54,12 @@ namespace delta::core
         arena.maxCapacity = maxCapacity;
     }
 
+    template <ExecutionContext ContextType>
+    DLT_FORCE_INLINE ContextType& GetExecutionContext(size_t i)
+    {
+        return reinterpret_cast<ContextType&>(*(reinterpret_cast<uint8_t*>(g_ThreadContexts) + i * THREAD_EXECUTION_CONTEXT_SIZE));
+    }
+
     void ThreadContext_Initialize(uint32_t threadCount, size_t pageSize)
     {
         g_ThreadCount = threadCount;
@@ -86,7 +92,7 @@ namespace delta::core
         uint8_t* runwayCursor = masterPoolBase + alignedContextArraySize;
         for (uint32_t i = 0; i < threadCount; i++)
         {
-            GenericExecutionContext& ctx = g_ThreadContexts[i];
+            GenericExecutionContext& ctx = GetExecutionContext<GenericExecutionContext&>(i);
             InitializePageCoordinator(ctx.pageCoordinator, pageSize, runwayCursor);
             InitializeArena(ctx.pageCoordinator, ctx.transientArena, MemoryMap::VIRT_ZONE_TA_OFFSET, MemoryMap::VIRT_ZONE_TA_BASELINE, MemoryMap::VIRT_ZONE_TA_SIZE);
             delta::platform::Timer_Initialize(&ctx.perThreadTimer);
@@ -95,7 +101,7 @@ namespace delta::core
 
         // Finish initializing main thread context
         {
-            MainExecutionContext& ctx = reinterpret_cast<MainExecutionContext&>(g_ThreadContexts[0]);
+            MainExecutionContext& ctx = GetExecutionContext<MainExecutionContext&>(0);
             ctx.generic.type = ThreadType::MAIN;
             ctx.generic.threadIx = 0;
             ctx.generic.threadId = delta::platform::Thread_GetCurrentId();
@@ -105,7 +111,7 @@ namespace delta::core
 
         for (uint32_t i = 1; i < threadCount; i++)
         {
-            WorkerExecutionContext& ctx = reinterpret_cast<WorkerExecutionContext&>(g_ThreadContexts[i]);
+            WorkerExecutionContext& ctx = GetExecutionContext<WorkerExecutionContext>(i);
             ctx.generic.type = ThreadType::WORKER;
             ctx.generic.threadIx = i;
             ctx.generic.threadId = 0xDEADBEEFu; // Initialized when thread starts
