@@ -30,7 +30,10 @@ namespace delta::core
 
     static void WorkerProc(void* args)
     {
-        WorkerExecutionContext& ctx = *ThreadContextCast<WorkerExecutionContext>(ThreadContext_GetCurrent());
+        GenericExecutionContext* generic = reinterpret_cast<GenericExecutionContext*>(args);
+        ThreadContext_SetCurrent(generic);
+
+        WorkerExecutionContext& ctx = *ThreadContextCast<WorkerExecutionContext>(generic);
 
         task_t task;
         payload_t payload;
@@ -64,7 +67,11 @@ namespace delta::core
         s_Threads = new(delta::Engine::AllocationType::PERSISTENT) ThreadHandle[count];
 
         for (uint32_t i = 0; i < count; i++)
+        {
+            // looping through thread indices, workers start from ix=1
+            c.args = ThreadContext_GetForIndex(i+1);
             s_Threads[i] = delta::platform::Thread_Create(&c);
+        }
     }
 
     void Worker_Shutdown()

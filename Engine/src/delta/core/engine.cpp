@@ -18,9 +18,11 @@
 #include <delta/core/memory.h>
 #include <delta/platform/os.h>
 #include <delta/platform/os_internal.h>
-#include <delta/core/ThreadContext.h>
-#include <delta/core/MemoryConfig.h>
-#include <delta/core/EngineTypes.h>
+
+#include "EngineTypes.h"
+#include "MemoryConfig.h"
+#include "ThreadContext.h"
+#include "Worker.h"
 
 namespace delta::Engine
 {
@@ -37,10 +39,12 @@ namespace delta::Engine
         uint32_t pageSize = osInfo->osPageSize;
         delta::core::MemoryConfig_Initialize(memStatus.physicalInstalled, pageSize, totalThreads);
         delta::core::ThreadContext_Initialize(totalThreads, pageSize);
+        delta::core::Worker_Init(totalThreads-1);
     }
 
     void Shutdown(Context& context)
     {
+        delta::core::Worker_Shutdown();
         delta::core::ThreadContext_Shutdown();
         delta::core::MemoryConfig_Shutdown();
     }
