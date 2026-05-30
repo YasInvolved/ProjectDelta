@@ -39,7 +39,7 @@ namespace delta::core
         namespace Worker
         {
             // QUEUE
-            inline constexpr size_t VIRT_ZONE_QUEUE_OFFSET = 0ull;
+            inline constexpr size_t VIRT_ZONE_QUEUE_OFFSET = VIRT_ZONE_TA_OFFSET + VIRT_ZONE_TA_SIZE;
             inline constexpr size_t VIRT_ZONE_QUEUE_SIZE = (1ull << 16); // 64KB
             inline constexpr size_t VIRT_ZONE_QUEUE_BASELINE = UINT64_MAX; // No baseline, we commit it all
 

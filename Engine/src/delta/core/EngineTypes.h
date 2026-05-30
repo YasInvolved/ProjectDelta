@@ -82,6 +82,9 @@ namespace delta::core
 
         // ROLE TRAITS
         TaskQueue taskQueue;
+        delta::platform::SemaphoreHandle sleepSemaphore;
+        std::atomic<bool> isAsleep;
+        std::atomic<bool> shouldClose;
     };
 
     template <typename T>

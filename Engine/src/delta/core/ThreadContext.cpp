@@ -131,6 +131,10 @@ namespace delta::core
             ctx.generic.type = ThreadType::WORKER;
             ctx.generic.threadIx = i;
             ctx.generic.threadId = 0xDEADBEEFu; // Initialized when thread starts
+            ctx.isAsleep.store(false, std::memory_order_relaxed);
+            ctx.shouldClose.store(false, std::memory_order_relaxed);
+
+            InitializeQueue(ctx.generic.pageCoordinator, ctx.taskQueue, MemoryMap::Worker::VIRT_ZONE_QUEUE_OFFSET, MemoryMap::Worker::VIRT_ZONE_QUEUE_SIZE);
         }
 
         tl_CurrentThreadContext = &g_ThreadContexts[0];
