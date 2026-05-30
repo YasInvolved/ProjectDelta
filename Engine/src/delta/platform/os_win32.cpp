@@ -48,6 +48,11 @@ namespace delta::platform
         HANDLE hThread;
     };
 
+    struct Semaphore
+    {
+        HANDLE hSemaphore;
+    };
+
     static_assert(std::is_standard_layout_v<Thread>, "PAL layout broken: Must be standard layout!");
     static_assert(sizeof(Thread) == sizeof(HANDLE), "PAL layout broken: Size mismatch!");
 
@@ -334,6 +339,34 @@ namespace delta::platform
             return;
 
         WaitForMultipleObjects(count, reinterpret_cast<HANDLE*>(threads), TRUE, INFINITE);
+    }
+
+    SemaphoreHandle Sync_CreateSemaphore()
+    {
+        Semaphore* s = new(delta::Engine::AllocationType::PERSISTENT) Semaphore{};
+        s->hSemaphore = CreateSemaphoreA(nullptr, 0, 1000000, nullptr);
+        if (s->hSemaphore == nullptr)
+            return nullptr;
+        
+        return s;
+    }
+
+    void Sync_DestroySemaphore(SemaphoreHandle sem)
+    {
+        if (!sem)
+            return;
+
+        CloseHandle(sem->hSemaphore);
+    }
+
+    void Sync_SignalSemaphore(SemaphoreHandle handle)
+    {
+        ReleaseSemaphore(handle->hSemaphore, 1, nullptr);
+    }
+
+    void Sync_WaitSemaphore(SemaphoreHandle handle)
+    {
+        WaitForSingleObject(handle->hSemaphore, INFINITE);
     }
 }
 

@@ -30,6 +30,9 @@ namespace delta::platform
     struct Thread;
     using ThreadHandle = Thread*;
 
+    struct Semaphore;
+    using SemaphoreHandle = Semaphore*;
+
     struct Timer
     {
         alignas(8) uint8_t opaqueData[32];
@@ -57,4 +60,10 @@ namespace delta::platform
     ThreadHandle Thread_Create(ThreadCreateInfo* createInfo);
     void Thread_Join(ThreadHandle thread);
     void Thread_JoinMultiple(ThreadHandle* threads, uint32_t count);
+
+    // Sync API
+    SemaphoreHandle Sync_CreateSemaphore();
+    void Sync_DestroySemaphore(SemaphoreHandle sem);
+    void Sync_SignalSemaphore(SemaphoreHandle sem);
+    void Sync_WaitSemaphore(SemaphoreHandle sem);
 }
