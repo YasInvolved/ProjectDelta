@@ -120,7 +120,7 @@ namespace delta::core
             MainExecutionContext& ctx = GetExecutionContext<MainExecutionContext&>(0);
             ctx.generic.type = ThreadType::MAIN;
             ctx.generic.threadIx = 0;
-            ctx.generic.threadId = delta::platform::Thread_GetCurrentId();
+            ctx.generic.threadHandle = delta::platform::Thread_GetCurrentHandle();
 
             InitializeArena(ctx.generic.pageCoordinator, ctx.persistentStorage, MemoryMap::Main::VIRT_ZONE_PS_OFFSET, MemoryMap::Main::VIRT_ZONE_PS_BASELINE, MemoryMap::Main::VIRT_ZONE_PS_SIZE);
         }
@@ -130,7 +130,7 @@ namespace delta::core
             WorkerExecutionContext& ctx = GetExecutionContext<WorkerExecutionContext>(i);
             ctx.generic.type = ThreadType::WORKER;
             ctx.generic.threadIx = i;
-            ctx.generic.threadId = 0xDEADBEEFu; // Initialized when thread starts
+            ctx.generic.threadHandle = delta::platform::INVALID_THREAD_HANDLE; // Initialized when thread starts
             ctx.isAsleep.store(false, std::memory_order_relaxed);
             ctx.shouldClose.store(false, std::memory_order_relaxed);
             ctx.sleepSemaphore = delta::platform::Sync_CreateSemaphore();

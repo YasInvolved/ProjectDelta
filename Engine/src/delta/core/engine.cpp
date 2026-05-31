@@ -39,6 +39,9 @@ namespace delta::Engine
         uint32_t pageSize = osInfo->osPageSize;
         delta::core::MemoryConfig_Initialize(memStatus.physicalInstalled, pageSize, totalThreads);
         delta::core::ThreadContext_Initialize(totalThreads, pageSize);
+
+        delta::platform::ThreadHandle th = delta::platform::Thread_GetCurrentHandle();
+        delta::platform::Thread_AssignPhysicalCore(th, 0);
         delta::core::Worker_Init(totalThreads-1);
     }
 

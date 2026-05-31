@@ -61,7 +61,7 @@ namespace delta::core
         // SHARED TRAITS
         ThreadType type;
         uint32_t threadIx;
-        uint32_t threadId;
+        delta::platform::ThreadHandle threadHandle;
 
         ThreadPageCoordinator pageCoordinator;
         ThreadArena transientArena;

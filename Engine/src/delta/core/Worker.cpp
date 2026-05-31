@@ -20,7 +20,7 @@
 
 namespace delta::core
 {
-    using ThreadHandle = delta::platform::Thread*;
+    using ThreadHandle = delta::platform::ThreadHandle;
     using ThreadCreateInfo = delta::platform::ThreadCreateInfo;
 
     using SemaphoreHandle = delta::platform::SemaphoreHandle;
@@ -31,7 +31,6 @@ namespace delta::core
     static void WorkerProc(void* args)
     {
         GenericExecutionContext* generic = reinterpret_cast<GenericExecutionContext*>(args);
-        generic->threadId = delta::platform::Thread_GetCurrentId();
         ThreadContext_SetCurrent(generic);
 
         WorkerExecutionContext& ctx = *ThreadContextCast<WorkerExecutionContext>(generic);
@@ -73,9 +72,14 @@ namespace delta::core
         {
             // looping through thread indices, workers start from ix=1
             ThreadCreateInfo& info = cs[i];
+            ThreadHandle& handle = s_Threads[i];
+            auto* ctx = ThreadContext_GetForIndex(i + 1);
             info.fn = WorkerProc;
-            info.args = ThreadContext_GetForIndex(i + 1);
-            s_Threads[i] = delta::platform::Thread_Create(&info);
+            info.args = (void*)ctx;
+            handle = delta::platform::Thread_Create(&info);
+            ctx->threadHandle = handle;
+            delta::platform::Thread_AssignPhysicalCore(handle, i + 1);
+            delta::platform::Thread_SetName(handle, "Worker");
         }
     }
 
