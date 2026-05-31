@@ -53,6 +53,14 @@ namespace delta::platform
         HANDLE hSemaphore;
     };
 
+    struct THREADNAME_INFO
+    {
+        DWORD dwType;
+        LPCSTR szName;
+        DWORD dwThreadID;
+        DWORD dwFlags;
+    };
+
     static_assert(std::is_standard_layout_v<Thread>, "PAL layout broken: Must be standard layout!");
     static_assert(sizeof(Thread) == sizeof(HANDLE), "PAL layout broken: Size mismatch!");
 
@@ -312,6 +320,43 @@ namespace delta::platform
     uint32_t Thread_GetId(ThreadHandle thread)
     {
         return GetThreadId(thread->hThread);
+    }
+
+    ThreadHandle Thread_GetCurrentHandle()
+    {
+        Thread* t = new(delta::Engine::AllocationType::PERSISTENT) Thread();
+        t->hThread = GetCurrentThread();
+        if (!t->hThread)
+            return nullptr;
+
+        return t;
+    }
+
+    void Thread_AssignPhysicalCore(ThreadHandle thread, uint32_t coreIndex)
+    {
+        uint32_t logicalCore = coreIndex * 2;
+        DWORD_PTR affinityMask = (DWORD_PTR)(1ull << logicalCore);
+        DWORD_PTR prevMask = SetThreadAffinityMask(thread->hThread, affinityMask);
+    }
+
+    void Thread_SetName(ThreadHandle handle, const char* name)
+    {
+        const THREADNAME_INFO info =
+        {
+            .dwType = 0x1000,
+            .szName = name,
+            .dwThreadID = GetThreadId(handle->hThread),
+            .dwFlags = 0
+        };
+
+        __try
+        {
+            ::RaiseException(0x406D1388, 0, sizeof(info) / sizeof(DWORD), reinterpret_cast<const ULONG_PTR*>(&info));
+        }
+        __except(EXCEPTION_CONTINUE_EXECUTION)
+        {
+
+        }
     }
 
     ThreadHandle Thread_Create(ThreadCreateInfo* createInfo)

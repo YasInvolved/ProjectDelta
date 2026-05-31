@@ -21,15 +21,6 @@ namespace delta::platform
     struct BrandStringCall;
     struct Timer_Internal;
 
-    struct ThreadCreateInfo
-    {
-        void (*fn)(void*);
-        void* args;
-    };
-
-    struct Thread;
-    using ThreadHandle = Thread*;
-
     struct Semaphore;
     using SemaphoreHandle = Semaphore*;
 
@@ -55,9 +46,22 @@ namespace delta::platform
     double  Timer_TicksToMicroseconds(const Timer* timer, int64_t startTicks, int64_t endTicks);
 
     // Thread API
+    struct Thread;
+    using ThreadHandle = Thread*;
+    inline constexpr ThreadHandle INVALID_THREAD_HANDLE = nullptr; // random number 696767
+
+    struct ThreadCreateInfo
+    {
+        void (*fn)(void*);
+        void* args;
+    };
+
     uint32_t Thread_GetCurrentId();
     uint32_t Thread_GetId(ThreadHandle thread);
+    ThreadHandle Thread_GetCurrentHandle();
     ThreadHandle Thread_Create(ThreadCreateInfo* createInfo);
+    void Thread_AssignPhysicalCore(ThreadHandle thread, uint32_t coreIndex);
+    void Thread_SetName(ThreadHandle handle, const char* name);
     void Thread_Join(ThreadHandle thread);
     void Thread_JoinMultiple(ThreadHandle* threads, uint32_t count);
 
