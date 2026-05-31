@@ -368,6 +368,11 @@ namespace delta::platform
     {
         WaitForSingleObject(handle->hSemaphore, INFINITE);
     }
+
+    void Sync_Sleep(uint32_t milliseconds)
+    {
+        Sleep(milliseconds);
+    }
 }
 
 #endif

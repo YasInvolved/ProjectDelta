@@ -46,6 +46,7 @@ namespace delta::Engine
     {
         // blah blah blah
         // do something
+        delta::platform::Sync_Sleep(100);
         delta::core::ThreadArena_Reset(delta::core::GetTransientArena());
     }
 

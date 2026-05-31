@@ -66,4 +66,5 @@ namespace delta::platform
     void Sync_DestroySemaphore(SemaphoreHandle sem);
     void Sync_SignalSemaphore(SemaphoreHandle sem);
     void Sync_WaitSemaphore(SemaphoreHandle sem);
+    void Sync_Sleep(uint32_t milliseconds);
 }
