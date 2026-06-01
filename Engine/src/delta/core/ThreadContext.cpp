@@ -38,7 +38,12 @@ namespace delta::core
         pageCoord.reservedCapacity = MemoryMap::VIRT_ZONE_SPACE_LENGTH;
     }
 
-    DLT_FORCE_INLINE static void InitializeQueue(const ThreadPageCoordinator& pageCoord, TaskQueue& queue, size_t offset, size_t memSize)
+    DLT_FORCE_INLINE static void InitializeQueue(
+        const ThreadPageCoordinator& pageCoord,
+        TaskQueue& queue,
+        DependencyCounter* depCounter,
+        size_t offset,
+        size_t memSize)
     {
         queue.size = memSize / TaskQueue::FIELD_SIZE;
         queue.mask = queue.size - 1;
@@ -56,7 +61,12 @@ namespace delta::core
         queue.payloads = reinterpret_cast<void**>(payloadsArrayPtr);
     }
 
-    DLT_FORCE_INLINE static void InitializeArena(const ThreadPageCoordinator& pageCoord, ThreadArena& arena, size_t offset, size_t baseline, size_t maxCapacity)
+    DLT_FORCE_INLINE static void InitializeArena(
+        const ThreadPageCoordinator& pageCoord,
+        ThreadArena& arena,
+        size_t offset,
+        size_t baseline,
+        size_t maxCapacity)
     {
         uint8_t* pTarget = pageCoord.virtualAddressBase + offset;
         void* res = delta::platform::Memory_Commit(pTarget, baseline);
@@ -109,20 +119,37 @@ namespace delta::core
         for (uint32_t i = 0; i < threadCount; i++)
         {
             GenericExecutionContext& ctx = GetExecutionContext<GenericExecutionContext&>(i);
-            InitializePageCoordinator(ctx.pageCoordinator, pageSize, runwayCursor);
-            InitializeArena(ctx.pageCoordinator, ctx.transientArena, MemoryMap::VIRT_ZONE_TA_OFFSET, MemoryMap::VIRT_ZONE_TA_BASELINE, MemoryMap::VIRT_ZONE_TA_SIZE);
             delta::platform::Timer_Initialize(&ctx.perThreadTimer);
+            InitializePageCoordinator(ctx.pageCoordinator, pageSize, runwayCursor);
+            InitializeArena(
+                ctx.pageCoordinator,
+                ctx.transientArena,
+                MemoryMap::VIRT_ZONE_TA_OFFSET,
+                MemoryMap::VIRT_ZONE_TA_BASELINE,
+                MemoryMap::VIRT_ZONE_TA_SIZE
+            );
+
             runwayCursor += MemoryMap::VIRT_ZONE_SPACE_LENGTH;
         }
 
         // Finish initializing main thread context
+        DependencyCounter* depCounterPtr = nullptr;
         {
             MainExecutionContext& ctx = GetExecutionContext<MainExecutionContext&>(0);
             ctx.generic.type = ThreadType::MAIN;
             ctx.generic.threadIx = 0;
             ctx.generic.threadHandle = delta::platform::Thread_GetCurrentHandle();
+            ctx.depCounter.target = 0;
+            ctx.depCounter.count.store(0, std::memory_order_relaxed);
+            depCounterPtr = &ctx.depCounter;
 
-            InitializeArena(ctx.generic.pageCoordinator, ctx.persistentStorage, MemoryMap::Main::VIRT_ZONE_PS_OFFSET, MemoryMap::Main::VIRT_ZONE_PS_BASELINE, MemoryMap::Main::VIRT_ZONE_PS_SIZE);
+            InitializeArena(
+                ctx.generic.pageCoordinator,
+                ctx.persistentStorage,
+                MemoryMap::Main::VIRT_ZONE_PS_OFFSET,
+                MemoryMap::Main::VIRT_ZONE_PS_BASELINE,
+                MemoryMap::Main::VIRT_ZONE_PS_SIZE
+            );
         }
 
         for (uint32_t i = 1; i < threadCount; i++)
@@ -135,7 +162,13 @@ namespace delta::core
             ctx.shouldClose.store(false, std::memory_order_relaxed);
             ctx.sleepSemaphore = delta::platform::Sync_CreateSemaphore();
 
-            InitializeQueue(ctx.generic.pageCoordinator, ctx.taskQueue, MemoryMap::Worker::VIRT_ZONE_QUEUE_OFFSET, MemoryMap::Worker::VIRT_ZONE_QUEUE_SIZE);
+            InitializeQueue(
+                ctx.generic.pageCoordinator,
+                ctx.taskQueue,
+                depCounterPtr,
+                MemoryMap::Worker::VIRT_ZONE_QUEUE_OFFSET,
+                MemoryMap::Worker::VIRT_ZONE_QUEUE_SIZE
+            );
         }
 
         tl_CurrentThreadContext = &g_ThreadContexts[0];

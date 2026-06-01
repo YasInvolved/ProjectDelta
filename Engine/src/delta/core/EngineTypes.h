@@ -37,6 +37,12 @@ namespace delta::core
         size_t maxCapacity;
     };
 
+    struct DependencyCounter
+    {
+        uint32_t target;
+        std::atomic<uint32_t> count;
+    };
+
     using task_t = void (*)(void*);
     using payload_t = void*;
     using queue_index_t = int64_t;
@@ -50,6 +56,7 @@ namespace delta::core
 
         task_t* tasks;
         payload_t* payloads;
+        DependencyCounter* depCounterPtr;
 
         static inline constexpr size_t FIELD_SIZE = sizeof(task_t) + sizeof(payload_t);
     };
@@ -75,6 +82,7 @@ namespace delta::core
 
         // ROLE TRAITS
         ThreadArena persistentStorage;
+        DependencyCounter depCounter;
     };
 
     struct alignas(64) WorkerExecutionContext
