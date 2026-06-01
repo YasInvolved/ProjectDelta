@@ -152,10 +152,17 @@ namespace delta::platform
         return true;
     }
 
+    // TODO: Move this variables to the reasonable place
+    static HINSTANCE s_hInstance = nullptr;
+    static STARTUPINFOA s_StartupInfo = { sizeof(STARTUPINFOA) };
+
     void Initialize()
     {
         memset(&g_osInfo, 0u, sizeof(OSInfo));
         fetchCpuidValues();
+
+        s_hInstance = GetModuleHandleA(nullptr);
+        GetStartupInfoA(&s_StartupInfo);
 
         SYSTEM_INFO info;
         GetSystemInfo(&info);
@@ -420,10 +427,14 @@ namespace delta::platform
         Sleep(milliseconds);
     }
 
+    // ------------------------------------------ WINDOW API ------------------------------------------
+
     struct Window
     {
         HWND hwnd;
     };
+
+    static constexpr const char MAIN_WND_CLASS_NAME[] = "DltWindow";
 
     static LRESULT CALLBACK DltWindowProc(HWND hwnd, UINT umesg, WPARAM wparam, LPARAM lparam)
     {
@@ -439,10 +450,10 @@ namespace delta::platform
 
     Window* Window_Create()
     {
+        assert(s_hInstance);
         Window* window = new(delta::Engine::AllocationType::PERSISTENT) Window();
 
-        static constexpr const char MAIN_WND_CLASS_NAME[] = "DltWindow";
-        HINSTANCE hInstance = GetModuleHandleA(nullptr);
+        int nCmdShow = (s_StartupInfo.dwFlags & STARTF_USESHOWWINDOW) ? s_StartupInfo.wShowWindow : SW_SHOWDEFAULT;
 
         STARTUPINFOA startupInfo = { sizeof(STARTUPINFOA) };
         GetStartupInfoA(&startupInfo);
@@ -455,7 +466,7 @@ namespace delta::platform
             .lpfnWndProc = DltWindowProc,
             .cbClsExtra = 0,
             .cbWndExtra = 0,
-            .hInstance = hInstance,
+            .hInstance = s_hInstance,
             .hCursor = LoadCursorA(nullptr, IDC_ARROW),
             .hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH),
             .lpszClassName = MAIN_WND_CLASS_NAME
@@ -485,7 +496,7 @@ namespace delta::platform
             wr.bottom - wr.top,
             nullptr,
             nullptr,
-            hInstance,
+            s_hInstance,
             nullptr
         );
 
