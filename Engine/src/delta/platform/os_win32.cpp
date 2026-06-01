@@ -16,6 +16,7 @@
 
 #ifdef _WIN32
 
+#include <delta/platform/compiler.h>
 #include <delta/platform/os.h>
 #include "os_internal.h"
 #include <Windows.h>

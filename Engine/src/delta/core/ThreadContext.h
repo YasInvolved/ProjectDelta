@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include <delta/platform/compiler.h>
 #include "EngineTypes.h"
 
 namespace delta::core
@@ -77,27 +78,30 @@ namespace delta::core
         return ctx && ctx->type == ThreadType::MAIN;
     }
 
-    inline MainExecutionContext& GetMainContext()
-    {
-        auto* ctx = ThreadContext_GetCurrent();
-        if (ctx->type == ThreadType::MAIN)
-            return reinterpret_cast<MainExecutionContext&>(ctx);
-
-        assert(false); // this shouldn't ever happen
-    }
-
     inline bool IsWorkerThread()
     {
         auto* ctx = ThreadContext_GetCurrent();
         return ctx && ctx->type == ThreadType::WORKER;
     }
 
+    DLT_DISABLE_WARNING_PUSH
+    DLT_DISABLE_MISSING_RETURN
+    inline MainExecutionContext& GetMainContext()
+    {
+        auto* ctx = ThreadContext_GetCurrent();
+        if (ctx->type == ThreadType::MAIN)
+            return reinterpret_cast<MainExecutionContext&>(*ctx);
+
+        assert(false); // this shouldn't ever happen
+    }
+
     inline WorkerExecutionContext& GetWorkerContext()
     {
         auto* ctx = ThreadContext_GetCurrent();
         if (ctx->type == ThreadType::WORKER)
-            return reinterpret_cast<WorkerExecutionContext&>(ctx);
+            return reinterpret_cast<WorkerExecutionContext&>(*ctx);
 
         assert(false);
     }
+    DLT_DISABLE_WARNING_POP
 }

@@ -30,17 +30,18 @@ namespace delta::core
 
     static void WorkerProc(void* args)
     {
-        WorkerExecutionContext& ctx = GetWorkerContext();
+        WorkerExecutionContext* ctx = reinterpret_cast<WorkerExecutionContext*>(args);
+        ThreadContext_SetCurrent((GenericExecutionContext*)ctx);
 
         task_t task;
         payload_t payload;
-        DependencyCounter& depCounter = reinterpret_cast<DependencyCounter&>(ctx.taskQueue.depCounterPtr);
-        while (!ctx.shouldClose.load(std::memory_order_acquire))
+        DependencyCounter& depCounter = reinterpret_cast<DependencyCounter&>(*ctx->taskQueue.depCounterPtr);
+        while (!ctx->shouldClose.load(std::memory_order_acquire))
         {
             // TODO: Figure out how to select a worker to steal some work from.
             // I'll probably utilize modulo n cyclic groups. (algebra - group theory)
 
-            if (TaskQueue_Pop(&ctx.taskQueue, &task, &payload))
+            if (TaskQueue_Pop(&ctx->taskQueue, &task, &payload))
             {
                 task(payload);
                 depCounter.count.fetch_sub(1, std::memory_order_release);
@@ -48,13 +49,13 @@ namespace delta::core
             }
 
             ThreadArena_Reset(GetTransientArena());
-            ctx.isAsleep.store(true, std::memory_order_release);
-            if (!ctx.shouldClose.load(std::memory_order_acquire))
+            ctx->isAsleep.store(true, std::memory_order_release);
+            if (!ctx->shouldClose.load(std::memory_order_acquire))
             {
-                delta::platform::Sync_WaitSemaphore(ctx.sleepSemaphore);
+                delta::platform::Sync_WaitSemaphore(ctx->sleepSemaphore);
             }
 
-            ctx.isAsleep.store(false, std::memory_order_release);
+            ctx->isAsleep.store(false, std::memory_order_release);
         }
     }
     

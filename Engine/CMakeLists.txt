@@ -13,6 +13,7 @@
 # limitations under the License.
 
 add_library(ProjectDelta SHARED
+   "src/delta/platform/compiler.h"
    "src/delta/core/engine.cpp"
    "include/delta/core/engine.h"
    "include/delta/core/memory.h"
