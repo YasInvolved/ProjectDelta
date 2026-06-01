@@ -18,17 +18,8 @@
 
 namespace delta::platform
 {
+    // Initialization
     struct BrandStringCall;
-    struct Timer_Internal;
-
-    struct Semaphore;
-    using SemaphoreHandle = Semaphore*;
-
-    struct Timer
-    {
-        alignas(8) uint8_t opaqueData[32];
-    };
-
     void Initialize();
 
     // Memory API
@@ -40,6 +31,12 @@ namespace delta::platform
     bool    Memory_ElevateLockLimit(size_t maxBytesToLock);
 
     // Timer API
+    struct Timer_Internal;
+    struct Timer
+    {
+        alignas(8) uint8_t opaqueData[32];
+    };
+
     void    Timer_Initialize(Timer* timer);
     int64_t Timer_GetTimestamp();
     double  Timer_TicksToMilliseconds(const Timer* timer, int64_t startTicks, int64_t endTicks);
@@ -66,6 +63,9 @@ namespace delta::platform
     void Thread_JoinMultiple(ThreadHandle* threads, uint32_t count);
 
     // Sync API
+    struct Semaphore;
+    using SemaphoreHandle = Semaphore*;
+
     SemaphoreHandle Sync_CreateSemaphore();
     void Sync_DestroySemaphore(SemaphoreHandle sem);
     void Sync_SignalSemaphore(SemaphoreHandle sem);

@@ -18,8 +18,8 @@ The engine treats memory as a first-class citizen. Rather than relying on genera
 - **Linear/Stack Allocators:** For high-speed, frame-based temporary storage.
 
 > [!NOTE]
-> There's only 1 type of allocator needed. I'm aware of memory trashing that could happen in the future or happens now.
-> Other allocator types will be implemented in the future. For now, I can almost certainly say that this will happen before
+> There's only 1 type of allocator needed for now. I'm perfectly aware of memory bloating that could happen in the future or happens now.
+> **Other allocator types will be implemented in the future.** For now, I can almost certainly say that this will happen before
 > rendering system implementation.
 
 ## 🛠 Tech Stack
