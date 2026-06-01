@@ -1,3 +1,19 @@
+/*
+ * Copyright 2026 Jakub Bączyk
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #include <iostream>
 #include "ThreadContext.h"
 #include "MemoryConfig.h"
@@ -6,10 +22,13 @@
 
 namespace delta::core
 {
+    uintptr_t g_MasterSlabStart = 0;
+    uintptr_t g_MasterSlabEnd = 0;
+
     static uint32_t g_ThreadCount = 0;
     static uint32_t g_WorkerCount = 0;
-    static ThreadExecutionContext* g_ThreadContexts = nullptr;
-    thread_local ThreadExecutionContext* tl_CurrentThreadContext = nullptr;
+    static GenericExecutionContext* g_ThreadContexts = nullptr;
+    static thread_local GenericExecutionContext* tl_CurrentThreadContext = nullptr;
 
     DLT_FORCE_INLINE static void InitializePageCoordinator(ThreadPageCoordinator& pageCoord, size_t pageSize, uint8_t* baseAddress)
     {
@@ -19,7 +38,12 @@ namespace delta::core
         pageCoord.reservedCapacity = MemoryMap::VIRT_ZONE_SPACE_LENGTH;
     }
 
-    DLT_FORCE_INLINE static void InitializeQueue(const ThreadPageCoordinator& pageCoord, TaskQueue& queue, size_t offset, size_t memSize)
+    DLT_FORCE_INLINE static void InitializeQueue(
+        const ThreadPageCoordinator& pageCoord,
+        TaskQueue& queue,
+        DependencyCounter* depCounter,
+        size_t offset,
+        size_t memSize)
     {
         queue.size = memSize / TaskQueue::FIELD_SIZE;
         queue.mask = queue.size - 1;
@@ -37,7 +61,12 @@ namespace delta::core
         queue.payloads = reinterpret_cast<void**>(payloadsArrayPtr);
     }
 
-    DLT_FORCE_INLINE static void InitializeArena(const ThreadPageCoordinator& pageCoord, ThreadArena& arena, size_t offset, size_t baseline)
+    DLT_FORCE_INLINE static void InitializeArena(
+        const ThreadPageCoordinator& pageCoord,
+        ThreadArena& arena,
+        size_t offset,
+        size_t baseline,
+        size_t maxCapacity)
     {
         uint8_t* pTarget = pageCoord.virtualAddressBase + offset;
         void* res = delta::platform::Memory_Commit(pTarget, baseline);
@@ -48,27 +77,36 @@ namespace delta::core
         arena.backingMemory = pTarget;
         arena.capacity = baseline;
         arena.offset = 0;
+        arena.maxCapacity = maxCapacity;
     }
 
-    void ThreadContext_Initialize(uint32_t workerCount, size_t pageSize)
+    template <ExecutionContext ContextType>
+    DLT_FORCE_INLINE ContextType& GetExecutionContext(size_t i)
     {
-        uint32_t totalThreads = workerCount + 1; // include main thread
+        return reinterpret_cast<ContextType&>(*(reinterpret_cast<uint8_t*>(g_ThreadContexts) + i * THREAD_EXECUTION_CONTEXT_SIZE));
+    }
+
+    void ThreadContext_Initialize(uint32_t threadCount, size_t pageSize)
+    {
+        g_ThreadCount = threadCount;
+        g_WorkerCount = threadCount - 1;
 
         // assign 32Gb of address space per thread
         // master pool size is rounded up to page size
         constexpr size_t ADDR_SLICE_PER_THREAD = (1ull << 35);
-        size_t contextArraySize = sizeof(ThreadExecutionContext) * totalThreads;
+        size_t contextArraySize = THREAD_EXECUTION_CONTEXT_SIZE * threadCount;
         size_t alignedContextArraySize = ALIGN(contextArraySize, pageSize);
-        size_t masterPoolSize = (ADDR_SLICE_PER_THREAD * totalThreads) + alignedContextArraySize;
+        size_t masterPoolSize = (ADDR_SLICE_PER_THREAD * threadCount) + alignedContextArraySize;
 
         uint8_t* masterPoolBase = reinterpret_cast<uint8_t*>(
             delta::platform::Memory_Reserve(masterPoolSize)
         );
         assert(masterPoolBase != nullptr && "Failed to reserve master pool");
 
-        g_ThreadCount = workerCount;
-        g_WorkerCount = workerCount - 1;
-        g_ThreadContexts = reinterpret_cast<ThreadExecutionContext*>(
+        g_MasterSlabStart = reinterpret_cast<uintptr_t>(masterPoolBase);
+        g_MasterSlabEnd = g_MasterSlabStart + masterPoolSize;
+
+        g_ThreadContexts = reinterpret_cast<GenericExecutionContext*>(
             delta::platform::Memory_Commit(masterPoolBase, alignedContextArraySize)
         );
         assert(g_ThreadContexts != nullptr && "Failed to commit thread context array");
@@ -76,21 +114,60 @@ namespace delta::core
         if (!delta::platform::Memory_Lock(masterPoolBase, alignedContextArraySize))
             std::cout << "[DeltaEngine-Warning] Failed to lock memory resource: Master Thread Context Pool\n";
 
-        uint8_t* virtualRunwayCursor = masterPoolBase + alignedContextArraySize;
-        for (uint32_t i = 0; i < totalThreads; i++)
+        // pre-initialize generics
+        uint8_t* runwayCursor = masterPoolBase + alignedContextArraySize;
+        for (uint32_t i = 0; i < threadCount; i++)
         {
-            ThreadExecutionContext& ctx = g_ThreadContexts[i];
-            ctx.threadIx = i;
-            ctx.threadId = 0; // to be set later
-
-            InitializePageCoordinator(ctx.pageCoordinator, pageSize, virtualRunwayCursor);
-            InitializeQueue(ctx.pageCoordinator, ctx.taskQueue, MemoryMap::VIRT_ZONE_QUEUE_OFFSET, MemoryMap::VIRT_ZONE_QUEUE_SIZE);
-            InitializeArena(ctx.pageCoordinator, ctx.transientArena, MemoryMap::VIRT_ZONE_TA_OFFSET, MemoryMap::VIRT_ZONE_TA_BASELINE);
-            InitializeArena(ctx.pageCoordinator, ctx.componentPoolArena, MemoryMap::VIRT_ZONE_CPA_OFFSET, MemoryMap::VIRT_ZONE_CPA_BASELINE);
-            InitializeArena(ctx.pageCoordinator, ctx.sceneArena, MemoryMap::VIRT_ZONE_SA_OFFSET, MemoryMap::VIRT_ZONE_SA_BASELINE);
-
+            GenericExecutionContext& ctx = GetExecutionContext<GenericExecutionContext&>(i);
             delta::platform::Timer_Initialize(&ctx.perThreadTimer);
-            virtualRunwayCursor += ADDR_SLICE_PER_THREAD;
+            InitializePageCoordinator(ctx.pageCoordinator, pageSize, runwayCursor);
+            InitializeArena(
+                ctx.pageCoordinator,
+                ctx.transientArena,
+                MemoryMap::VIRT_ZONE_TA_OFFSET,
+                MemoryMap::VIRT_ZONE_TA_BASELINE,
+                MemoryMap::VIRT_ZONE_TA_SIZE
+            );
+
+            runwayCursor += MemoryMap::VIRT_ZONE_SPACE_LENGTH;
+        }
+
+        // Finish initializing main thread context
+        DependencyCounter* depCounterPtr = nullptr;
+        {
+            MainExecutionContext& ctx = GetExecutionContext<MainExecutionContext&>(0);
+            ctx.generic.type = ThreadType::MAIN;
+            ctx.generic.threadIx = 0;
+            ctx.generic.threadHandle = delta::platform::Thread_GetCurrentHandle();
+            ctx.depCounter.count.store(0, std::memory_order_relaxed);
+            depCounterPtr = &ctx.depCounter;
+
+            InitializeArena(
+                ctx.generic.pageCoordinator,
+                ctx.persistentStorage,
+                MemoryMap::Main::VIRT_ZONE_PS_OFFSET,
+                MemoryMap::Main::VIRT_ZONE_PS_BASELINE,
+                MemoryMap::Main::VIRT_ZONE_PS_SIZE
+            );
+        }
+
+        for (uint32_t i = 1; i < threadCount; i++)
+        {
+            WorkerExecutionContext& ctx = GetExecutionContext<WorkerExecutionContext>(i);
+            ctx.generic.type = ThreadType::WORKER;
+            ctx.generic.threadIx = i;
+            ctx.generic.threadHandle = delta::platform::INVALID_THREAD_HANDLE; // Initialized when thread starts
+            ctx.isAsleep.store(false, std::memory_order_relaxed);
+            ctx.shouldClose.store(false, std::memory_order_relaxed);
+            ctx.sleepSemaphore = delta::platform::Sync_CreateSemaphore();
+
+            InitializeQueue(
+                ctx.generic.pageCoordinator,
+                ctx.taskQueue,
+                depCounterPtr,
+                MemoryMap::Worker::VIRT_ZONE_QUEUE_OFFSET,
+                MemoryMap::Worker::VIRT_ZONE_QUEUE_SIZE
+            );
         }
 
         tl_CurrentThreadContext = &g_ThreadContexts[0];
@@ -101,10 +178,25 @@ namespace delta::core
         delta::platform::Memory_Release(g_ThreadContexts);
     }
 
+    GenericExecutionContext* ThreadContext_GetCurrent() noexcept
+    {
+        return tl_CurrentThreadContext;
+    }
+
+    GenericExecutionContext* ThreadContext_GetForIndex(uint32_t i) noexcept
+    {
+        return &GetExecutionContext<GenericExecutionContext>(i);
+    }
+
+    void ThreadContext_SetCurrent(GenericExecutionContext* ctx) noexcept
+    {
+        tl_CurrentThreadContext = ctx;
+    }
+
     void TaskQueue_Push(TaskQueue* queue, task_t task, payload_t payload)
     {
-        uint64_t b = queue->bottom.load(std::memory_order_relaxed);
-        uint64_t t = queue->top.load(std::memory_order_acquire);
+        queue_index_t b = queue->bottom.load(std::memory_order_relaxed);
+        queue_index_t t = queue->top.load(std::memory_order_acquire);
 
         if (b - t > queue->size)
         {
@@ -113,7 +205,7 @@ namespace delta::core
             return;
         }
 
-        uint64_t ix = b & queue->mask;
+        queue_index_t ix = b & queue->mask;
         queue->tasks[ix] = task;
         queue->payloads[ix] = payload;
 
@@ -123,11 +215,11 @@ namespace delta::core
 
     bool TaskQueue_Pop(TaskQueue* queue, task_t* outTask, payload_t* outPayload)
     {
-        uint64_t b = queue->bottom.load(std::memory_order_relaxed) - 1;
+        queue_index_t b = queue->bottom.load(std::memory_order_relaxed) - 1;
         queue->bottom.store(b, std::memory_order_relaxed);
 
         std::atomic_thread_fence(std::memory_order_seq_cst);
-        uint64_t t = queue->top.load(std::memory_order_relaxed);
+        queue_index_t t = queue->top.load(std::memory_order_relaxed);
 
         if (t > b)
         {
@@ -135,13 +227,13 @@ namespace delta::core
             return false;
         }
 
-        uint64_t ix = b & queue->mask;
+        queue_index_t ix = b & queue->mask;
         *outTask = queue->tasks[ix];
         *outPayload = queue->payloads[ix];
 
         if (t == b)
         {
-            uint64_t expectedTop = t;
+            queue_index_t expectedTop = t;
             if (!queue->top.compare_exchange_strong(expectedTop, expectedTop + 1, std::memory_order_seq_cst, std::memory_order_relaxed))
             {
                 queue->bottom.store(b + 1, std::memory_order_relaxed);
@@ -156,15 +248,15 @@ namespace delta::core
 
     bool TaskQueue_Steal(TaskQueue* queue, task_t* outTask, payload_t* outPayload)
     {
-        uint64_t t = queue->top.load(std::memory_order_acquire);
+        queue_index_t t = queue->top.load(std::memory_order_acquire);
 
         std::atomic_thread_fence(std::memory_order_seq_cst);
-        uint64_t b = queue->bottom.load(std::memory_order_acquire);
+        queue_index_t b = queue->bottom.load(std::memory_order_acquire);
 
         if (t >= b)
             return false;
 
-        uint64_t ix = t & queue->mask;
+        queue_index_t ix = t & queue->mask;
         *outTask = queue->tasks[ix];
         *outPayload = queue->payloads[ix];
 
@@ -176,12 +268,17 @@ namespace delta::core
 
     void Scheduler_ProcessTaskBatch(task_t* tasks, payload_t* payloads, size_t length)
     {
-        assert(tl_CurrentThreadContext->threadIx == 0); // CAN BE EXECUTED ONLY ON MAIN THREAD!
+        assert(IsMainThread()); // CAN BE EXECUTED ONLY ON MAIN THREAD!
+        GetMainContext().depCounter.count.store(length, std::memory_order_relaxed);
 
         for (size_t i = 0; i < length; i++)
         {
             size_t targetIx = 1 + (i % g_WorkerCount);
-            TaskQueue_Push(&g_ThreadContexts[targetIx].taskQueue, tasks[i], payloads[i]);
+            WorkerExecutionContext& ctx = GetExecutionContext<WorkerExecutionContext>(targetIx);
+            TaskQueue_Push(&ctx.taskQueue, tasks[i], payloads[i]);
+
+            if (ctx.isAsleep.load(std::memory_order_acquire))
+                delta::platform::Sync_SignalSemaphore(ctx.sleepSemaphore);
         }
     }
 
@@ -194,10 +291,11 @@ namespace delta::core
 
         while (consecutiveEmptyQueues < g_ThreadCount)
         {
+            WorkerExecutionContext& ctx = GetExecutionContext<WorkerExecutionContext>(workerIx);
             task_t task = nullptr;
             payload_t payload = nullptr;
 
-            if (TaskQueue_Steal(&g_ThreadContexts[workerIx].taskQueue, &task, &payload))
+            if (TaskQueue_Steal(&ctx.taskQueue, &task, &payload))
             {
                 consecutiveEmptyQueues = 0;
                 assert(task && payload);
@@ -215,12 +313,25 @@ namespace delta::core
         }
     }
 
+    ThreadArena* GetTransientArena() noexcept
+    {
+        auto* ctx = tl_CurrentThreadContext;
+        assert(ctx);
+        return &ctx->transientArena;
+    }
+
     void* ThreadArena_Allocate(ThreadArena* arena, size_t size, size_t alignment)
     {
         uintptr_t currentAddress = reinterpret_cast<uintptr_t>(arena->backingMemory) + arena->offset;
         uintptr_t alignedAddress = ALIGN(currentAddress, alignment);
         size_t padding = alignedAddress - currentAddress;
         size_t totalSpace = padding + size;
+
+        if (arena->offset + totalSpace > arena->maxCapacity)
+        {
+            // TODO: Handle it better. I don't know how yet, but I will know soon.
+            assert(false); // arena overflown
+        }
 
         if (totalSpace > arena->capacity)
         {

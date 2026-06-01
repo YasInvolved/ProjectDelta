@@ -13,8 +13,10 @@
 # limitations under the License.
 
 add_library(ProjectDelta SHARED
+   "src/delta/platform/compiler.h"
    "src/delta/core/engine.cpp"
    "include/delta/core/engine.h"
+   "include/delta/core/memory.h"
    "include/delta/definitions.h"
    "src/delta/platform/os_internal.h"
    "src/delta/platform/os_win32.cpp"
@@ -27,6 +29,8 @@ add_library(ProjectDelta SHARED
    "src/delta/core/ThreadContext.cpp"
    "src/delta/core/MemoryConfig.h"
    "src/delta/core/MemoryConfig.cpp"
+   "src/delta/core/Worker.h"
+   "src/delta/core/Worker.cpp"
 )
 
 target_compile_definitions(ProjectDelta
@@ -42,3 +46,9 @@ target_include_directories(ProjectDelta
    PUBLIC "include"
    PRIVATE "src"
 )
+
+if (MSVC)
+   target_compile_options(ProjectDelta PRIVATE /GR-)
+else()
+   target_compile_options(ProjectDelta PRIVATE -fno-rtti)
+endif()

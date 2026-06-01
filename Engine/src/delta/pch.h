@@ -6,5 +6,5 @@
 #include <cassert>
 #include <atomic>
 #include <bit>
-
-#include "internal_definitions.h"
+#include <type_traits>
+#include <algorithm>

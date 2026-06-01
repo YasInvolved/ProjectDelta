@@ -16,6 +16,7 @@
 
 #ifdef _WIN32
 
+#include <delta/platform/compiler.h>
 #include <delta/platform/os.h>
 #include "os_internal.h"
 #include <Windows.h>
@@ -42,6 +43,27 @@ namespace delta::platform
         int64_t freq;
         int64_t baseStartTime;
     };
+
+    struct Thread
+    {
+        HANDLE hThread;
+    };
+
+    struct Semaphore
+    {
+        HANDLE hSemaphore;
+    };
+
+    struct THREADNAME_INFO
+    {
+        DWORD dwType;
+        LPCSTR szName;
+        DWORD dwThreadID;
+        DWORD dwFlags;
+    };
+
+    static_assert(std::is_standard_layout_v<Thread>, "PAL layout broken: Must be standard layout!");
+    static_assert(sizeof(Thread) == sizeof(HANDLE), "PAL layout broken: Size mismatch!");
 
     enum CpuArchitecture : WORD
     {
@@ -178,11 +200,6 @@ namespace delta::platform
         g_osInfo.cpuLogicalProcessorCount = logicalProcessors;
         g_osInfo.cpuHasSMT = (logicalProcessors > physicalCores);
 
-        if (physicalCores > 1)
-            g_osInfo.maxEngineWorkerCount = physicalCores - 1;
-        else
-            g_osInfo.maxEngineWorkerCount = 1;
-
         bool privilegesSet = SetProcessPrivileges();
         if (!privilegesSet)
             std::cout << "[DeltaEngine-Warning] Failed to elevate SE_INC_WORKING_SET_NAME privilege. You may want to run the game as an administrator.\n";
@@ -287,6 +304,120 @@ namespace delta::platform
         int64_t elapsedTicks = endTicks - startTicks;
 
         return (static_cast<double>(elapsedTicks) * 1000000.0) / static_cast<double>(internal->freq);
+    }
+
+    static DWORD WINAPI DeltaThreadProc(LPVOID lParam)
+    {
+        ThreadCreateInfo* createInfo = reinterpret_cast<ThreadCreateInfo*>(lParam);
+        createInfo->fn(createInfo->args);
+        return 0;
+    }
+
+    uint32_t Thread_GetCurrentId()
+    {
+        return GetCurrentThreadId();
+    }
+
+    uint32_t Thread_GetId(ThreadHandle thread)
+    {
+        return GetThreadId(thread->hThread);
+    }
+
+    ThreadHandle Thread_GetCurrentHandle()
+    {
+        Thread* t = new(delta::Engine::AllocationType::PERSISTENT) Thread();
+        t->hThread = GetCurrentThread();
+        if (!t->hThread)
+            return nullptr;
+
+        return t;
+    }
+
+    void Thread_AssignPhysicalCore(ThreadHandle thread, uint32_t coreIndex)
+    {
+        uint32_t logicalCore = coreIndex * 2;
+        DWORD_PTR affinityMask = (DWORD_PTR)(1ull << logicalCore);
+        DWORD_PTR prevMask = SetThreadAffinityMask(thread->hThread, affinityMask);
+    }
+
+    void Thread_SetName(ThreadHandle handle, const char* name)
+    {
+        const THREADNAME_INFO info =
+        {
+            .dwType = 0x1000,
+            .szName = name,
+            .dwThreadID = GetThreadId(handle->hThread),
+            .dwFlags = 0
+        };
+
+        __try
+        {
+            ::RaiseException(0x406D1388, 0, sizeof(info) / sizeof(DWORD), reinterpret_cast<const ULONG_PTR*>(&info));
+        }
+        __except(EXCEPTION_CONTINUE_EXECUTION)
+        {
+
+        }
+    }
+
+    ThreadHandle Thread_Create(ThreadCreateInfo* createInfo)
+    {
+        Thread* thread = new(delta::Engine::AllocationType::PERSISTENT) Thread{};
+        thread->hThread = CreateThread(nullptr, 0, DeltaThreadProc, (void*)createInfo, 0, 0);
+        if (thread->hThread == 0)
+            return nullptr;
+
+        return static_cast<ThreadHandle>(thread);
+    }
+
+    void Thread_Join(ThreadHandle thread)
+    {
+        if (!thread)
+            return;
+
+        DWORD waitResult = WaitForSingleObject(thread->hThread, INFINITE);
+        CloseHandle(thread->hThread);
+    }
+
+    void Thread_JoinMultiple(ThreadHandle* threads, uint32_t count)
+    {
+        if (!threads)
+            return;
+
+        WaitForMultipleObjects(count, reinterpret_cast<HANDLE*>(threads), TRUE, INFINITE);
+    }
+
+    SemaphoreHandle Sync_CreateSemaphore()
+    {
+        Semaphore* s = new(delta::Engine::AllocationType::PERSISTENT) Semaphore{};
+        s->hSemaphore = CreateSemaphoreA(nullptr, 0, 1000000, nullptr);
+        if (s->hSemaphore == nullptr)
+            return nullptr;
+        
+        return static_cast<SemaphoreHandle>(s);
+    }
+
+    void Sync_DestroySemaphore(SemaphoreHandle sem)
+    {
+        if (!sem)
+            return;
+
+        CloseHandle(sem->hSemaphore);
+    }
+
+    void Sync_SignalSemaphore(SemaphoreHandle handle)
+    {
+        ReleaseSemaphore(handle->hSemaphore, 1, nullptr);
+    }
+
+    void Sync_WaitSemaphore(SemaphoreHandle handle)
+    {
+        WaitForSingleObject(handle->hSemaphore, INFINITE);
+    }
+
+    void Sync_Sleep(uint32_t milliseconds)
+    {
+        Sleep(milliseconds);
     }
 }
 

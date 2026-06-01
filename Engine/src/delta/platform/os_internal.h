@@ -21,6 +21,9 @@ namespace delta::platform
     struct BrandStringCall;
     struct Timer_Internal;
 
+    struct Semaphore;
+    using SemaphoreHandle = Semaphore*;
+
     struct Timer
     {
         alignas(8) uint8_t opaqueData[32];
@@ -41,4 +44,31 @@ namespace delta::platform
     int64_t Timer_GetTimestamp();
     double  Timer_TicksToMilliseconds(const Timer* timer, int64_t startTicks, int64_t endTicks);
     double  Timer_TicksToMicroseconds(const Timer* timer, int64_t startTicks, int64_t endTicks);
+
+    // Thread API
+    struct Thread;
+    using ThreadHandle = Thread*;
+    inline constexpr ThreadHandle INVALID_THREAD_HANDLE = nullptr; // random number 696767
+
+    struct ThreadCreateInfo
+    {
+        void (*fn)(void*);
+        void* args;
+    };
+
+    uint32_t Thread_GetCurrentId();
+    uint32_t Thread_GetId(ThreadHandle thread);
+    ThreadHandle Thread_GetCurrentHandle();
+    ThreadHandle Thread_Create(ThreadCreateInfo* createInfo);
+    void Thread_AssignPhysicalCore(ThreadHandle thread, uint32_t coreIndex);
+    void Thread_SetName(ThreadHandle handle, const char* name);
+    void Thread_Join(ThreadHandle thread);
+    void Thread_JoinMultiple(ThreadHandle* threads, uint32_t count);
+
+    // Sync API
+    SemaphoreHandle Sync_CreateSemaphore();
+    void Sync_DestroySemaphore(SemaphoreHandle sem);
+    void Sync_SignalSemaphore(SemaphoreHandle sem);
+    void Sync_WaitSemaphore(SemaphoreHandle sem);
+    void Sync_Sleep(uint32_t milliseconds);
 }

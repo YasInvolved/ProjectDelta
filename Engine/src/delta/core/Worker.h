@@ -14,20 +14,12 @@
  * limitations under the License.
  */
 
-#include <delta/definitions.h>
+#pragma once
 
-namespace delta::Engine
+#include <delta/core/EngineTypes.h>
+
+namespace delta::core
 {
-    struct Context
-    {
-        bool isRunning;
-    };
-
-    typedef void (*GameInitFunc)(Context*);
-    typedef void (*GameUpdateFunc)(Context*);
-    typedef void (*GameShutdownFunc)(Context*);
-
-    DLT_API void Initialize(Context& context);
-    DLT_API void Update(Context& context);
-    DLT_API void Shutdown(Context& context);
+    void Worker_Init(uint32_t count);
+    void Worker_Shutdown();
 }
