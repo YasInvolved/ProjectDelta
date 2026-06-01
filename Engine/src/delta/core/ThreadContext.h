@@ -93,6 +93,7 @@ namespace delta::core
             return reinterpret_cast<MainExecutionContext&>(*ctx);
 
         assert(false); // this shouldn't ever happen
+        DLT_UNREACHABLE;
     }
 
     inline WorkerExecutionContext& GetWorkerContext()
@@ -102,6 +103,7 @@ namespace delta::core
             return reinterpret_cast<WorkerExecutionContext&>(*ctx);
 
         assert(false);
+        DLT_UNREACHABLE;
     }
     DLT_DISABLE_WARNING_POP
 }
