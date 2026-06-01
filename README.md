@@ -29,8 +29,9 @@ The engine treats memory as a first-class citizen. Rather than relying on genera
 
 ## 🏗 Roadmap
 - [x] Memory Management Unit and custom allocators
-- [ ] Finalize Thread API and Task Scheduling (ongoing)
+- [x] Finalize Worker API and task scheduling foundations
+- [ ] Window and Event system (ongoing)
 - [ ] Implement SIMD math library integrations
 - [ ] Benchmarks
+- [ ] Integrate a Vulkan/Direct3D 12 rendering abstraction
 - [ ] Real-time telemetry system
-- [ ] Integrate a low-level Vulkan/Direct3D 12 rendering abstraction
