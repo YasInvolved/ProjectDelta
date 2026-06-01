@@ -39,7 +39,6 @@ namespace delta::core
 
     struct DependencyCounter
     {
-        uint32_t target;
         std::atomic<uint32_t> count;
     };
 

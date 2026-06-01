@@ -30,13 +30,11 @@ namespace delta::core
 
     static void WorkerProc(void* args)
     {
-        GenericExecutionContext* generic = reinterpret_cast<GenericExecutionContext*>(args);
-        ThreadContext_SetCurrent(generic);
-
-        WorkerExecutionContext& ctx = *ThreadContextCast<WorkerExecutionContext>(generic);
+        WorkerExecutionContext& ctx = GetWorkerContext();
 
         task_t task;
         payload_t payload;
+        DependencyCounter& depCounter = reinterpret_cast<DependencyCounter&>(ctx.taskQueue.depCounterPtr);
         while (!ctx.shouldClose.load(std::memory_order_acquire))
         {
             // TODO: Figure out how to select a worker to steal some work from.
@@ -45,6 +43,7 @@ namespace delta::core
             if (TaskQueue_Pop(&ctx.taskQueue, &task, &payload))
             {
                 task(payload);
+                depCounter.count.fetch_sub(1, std::memory_order_release);
                 continue;
             }
 

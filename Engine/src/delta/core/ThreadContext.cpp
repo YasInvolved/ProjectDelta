@@ -139,7 +139,6 @@ namespace delta::core
             ctx.generic.type = ThreadType::MAIN;
             ctx.generic.threadIx = 0;
             ctx.generic.threadHandle = delta::platform::Thread_GetCurrentHandle();
-            ctx.depCounter.target = 0;
             ctx.depCounter.count.store(0, std::memory_order_relaxed);
             depCounterPtr = &ctx.depCounter;
 
@@ -270,6 +269,7 @@ namespace delta::core
     void Scheduler_ProcessTaskBatch(task_t* tasks, payload_t* payloads, size_t length)
     {
         assert(IsMainThread()); // CAN BE EXECUTED ONLY ON MAIN THREAD!
+        GetMainContext().depCounter.count.store(length, std::memory_order_relaxed);
 
         for (size_t i = 0; i < length; i++)
         {

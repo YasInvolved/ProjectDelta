@@ -46,7 +46,7 @@ namespace delta::core
 
     // Inline Helpers
     template <ExecutionContext TargetType>
-    [[nodiscard]] inline TargetType* ThreadContextCast(GenericExecutionContext* ctx)
+    [[deprecated]] [[nodiscard]] inline TargetType* ThreadContextCast(GenericExecutionContext* ctx)
     {
         if (!ctx) return nullptr;
 
@@ -77,9 +77,27 @@ namespace delta::core
         return ctx && ctx->type == ThreadType::MAIN;
     }
 
+    inline MainExecutionContext& GetMainContext()
+    {
+        auto* ctx = ThreadContext_GetCurrent();
+        if (ctx->type == ThreadType::MAIN)
+            return reinterpret_cast<MainExecutionContext&>(ctx);
+
+        assert(false); // this shouldn't ever happen
+    }
+
     inline bool IsWorkerThread()
     {
         auto* ctx = ThreadContext_GetCurrent();
         return ctx && ctx->type == ThreadType::WORKER;
+    }
+
+    inline WorkerExecutionContext& GetWorkerContext()
+    {
+        auto* ctx = ThreadContext_GetCurrent();
+        if (ctx->type == ThreadType::WORKER)
+            return reinterpret_cast<WorkerExecutionContext&>(ctx);
+
+        assert(false);
     }
 }
