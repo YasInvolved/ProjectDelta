@@ -455,10 +455,6 @@ namespace delta::platform
 
         int nCmdShow = (s_StartupInfo.dwFlags & STARTF_USESHOWWINDOW) ? s_StartupInfo.wShowWindow : SW_SHOWDEFAULT;
 
-        STARTUPINFOA startupInfo = { sizeof(STARTUPINFOA) };
-        GetStartupInfoA(&startupInfo);
-        int nCmdShow = (startupInfo.dwFlags & STARTF_USESHOWWINDOW) ? startupInfo.wShowWindow : SW_SHOWDEFAULT;
-
         const WNDCLASSEXA wc =
         {
             .cbSize = sizeof(WNDCLASSEXA),
@@ -509,6 +505,27 @@ namespace delta::platform
         UpdateWindow(window->hwnd);
 
         return window;
+    }
+
+    void Window_ProcessEvents()
+    {
+        MSG msg = {};
+        while (PeekMessageA(&msg, nullptr, 0, 0, PM_REMOVE))
+        {
+            if (msg.message == WM_QUIT)
+            {
+                // TODO: Handle this
+            }
+
+            TranslateMessage(&msg);
+            DispatchMessageA(&msg);
+        }
+    }
+
+    void Window_Destroy(Window* window)
+    {
+        DestroyWindow(window->hwnd);
+        UnregisterClassA(MAIN_WND_CLASS_NAME, s_hInstance);
     }
 }
 

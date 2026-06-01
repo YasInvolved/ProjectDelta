@@ -76,4 +76,6 @@ namespace delta::platform
     struct Window;
 
     Window* Window_Create();
+    void Window_ProcessEvents();
+    void Window_Destroy(Window* window);
 }
