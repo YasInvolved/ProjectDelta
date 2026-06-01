@@ -152,10 +152,17 @@ namespace delta::platform
         return true;
     }
 
+    // TODO: Move this variables to the reasonable place
+    static HINSTANCE s_hInstance = nullptr;
+    static STARTUPINFOA s_StartupInfo = { sizeof(STARTUPINFOA) };
+
     void Initialize()
     {
         memset(&g_osInfo, 0u, sizeof(OSInfo));
         fetchCpuidValues();
+
+        s_hInstance = GetModuleHandleA(nullptr);
+        GetStartupInfoA(&s_StartupInfo);
 
         SYSTEM_INFO info;
         GetSystemInfo(&info);
@@ -418,6 +425,107 @@ namespace delta::platform
     void Sync_Sleep(uint32_t milliseconds)
     {
         Sleep(milliseconds);
+    }
+
+    // ------------------------------------------ WINDOW API ------------------------------------------
+
+    struct Window
+    {
+        HWND hwnd;
+    };
+
+    static constexpr const char MAIN_WND_CLASS_NAME[] = "DltWindow";
+
+    static LRESULT CALLBACK DltWindowProc(HWND hwnd, UINT umesg, WPARAM wparam, LPARAM lparam)
+    {
+        switch (umesg)
+        {
+        case WM_CLOSE:
+            // DestroyWindow(hwnd);
+            return 0;
+        default:
+            return DefWindowProcA(hwnd, umesg, wparam, lparam);
+        }
+    }
+
+    Window* Window_Create()
+    {
+        assert(s_hInstance);
+        Window* window = new(delta::Engine::AllocationType::PERSISTENT) Window();
+
+        int nCmdShow = (s_StartupInfo.dwFlags & STARTF_USESHOWWINDOW) ? s_StartupInfo.wShowWindow : SW_SHOWDEFAULT;
+
+        const WNDCLASSEXA wc =
+        {
+            .cbSize = sizeof(WNDCLASSEXA),
+            .style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC,
+            .lpfnWndProc = DltWindowProc,
+            .cbClsExtra = 0,
+            .cbWndExtra = 0,
+            .hInstance = s_hInstance,
+            .hCursor = LoadCursorA(nullptr, IDC_ARROW),
+            .hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH),
+            .lpszClassName = MAIN_WND_CLASS_NAME
+        };
+
+        if (!RegisterClassExA(&wc))
+        {
+            [[maybe_unused]] DWORD e = GetLastError();
+            return nullptr;
+        }
+
+        uint32_t clientWidth = 1280;
+        uint32_t clientHeight = 720;
+
+        RECT wr = { 0, 0, static_cast<LONG>(clientWidth), static_cast<LONG>(clientHeight) };
+        DWORD windowStyle = WS_OVERLAPPEDWINDOW | WS_VISIBLE;
+
+        AdjustWindowRect(&wr, windowStyle, FALSE);
+
+        window->hwnd = CreateWindowExA(
+            0,
+            MAIN_WND_CLASS_NAME,
+            "Delta Engine",
+            windowStyle,
+            CW_USEDEFAULT, CW_USEDEFAULT,
+            wr.right - wr.left,
+            wr.bottom - wr.top,
+            nullptr,
+            nullptr,
+            s_hInstance,
+            nullptr
+        );
+
+        if (!window->hwnd)
+        {
+            return nullptr;
+        }
+
+        ShowWindow(window->hwnd, nCmdShow);
+        UpdateWindow(window->hwnd);
+
+        return window;
+    }
+
+    void Window_ProcessEvents()
+    {
+        MSG msg = {};
+        while (PeekMessageA(&msg, nullptr, 0, 0, PM_REMOVE))
+        {
+            if (msg.message == WM_QUIT)
+            {
+                // TODO: Handle this
+            }
+
+            TranslateMessage(&msg);
+            DispatchMessageA(&msg);
+        }
+    }
+
+    void Window_Destroy(Window* window)
+    {
+        DestroyWindow(window->hwnd);
+        UnregisterClassA(MAIN_WND_CLASS_NAME, s_hInstance);
     }
 }
 

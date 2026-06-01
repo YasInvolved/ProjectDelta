@@ -71,4 +71,11 @@ namespace delta::platform
     void Sync_SignalSemaphore(SemaphoreHandle sem);
     void Sync_WaitSemaphore(SemaphoreHandle sem);
     void Sync_Sleep(uint32_t milliseconds);
+
+    // Window API
+    struct Window;
+
+    Window* Window_Create();
+    void Window_ProcessEvents();
+    void Window_Destroy(Window* window);
 }
