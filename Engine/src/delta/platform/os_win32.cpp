@@ -419,6 +419,86 @@ namespace delta::platform
     {
         Sleep(milliseconds);
     }
+
+    struct Window
+    {
+        HWND hwnd;
+    };
+
+    static LRESULT CALLBACK DltWindowProc(HWND hwnd, UINT umesg, WPARAM wparam, LPARAM lparam)
+    {
+        switch (umesg)
+        {
+        case WM_CLOSE:
+            // DestroyWindow(hwnd);
+            return 0;
+        default:
+            return DefWindowProcA(hwnd, umesg, wparam, lparam);
+        }
+    }
+
+    Window* Window_Create()
+    {
+        Window* window = new(delta::Engine::AllocationType::PERSISTENT) Window();
+
+        static constexpr const char MAIN_WND_CLASS_NAME[] = "DltWindow";
+        HINSTANCE hInstance = GetModuleHandleA(nullptr);
+
+        STARTUPINFOA startupInfo = { sizeof(STARTUPINFOA) };
+        GetStartupInfoA(&startupInfo);
+        int nCmdShow = (startupInfo.dwFlags & STARTF_USESHOWWINDOW) ? startupInfo.wShowWindow : SW_SHOWDEFAULT;
+
+        const WNDCLASSEXA wc =
+        {
+            .cbSize = sizeof(WNDCLASSEXA),
+            .style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC,
+            .lpfnWndProc = DltWindowProc,
+            .cbClsExtra = 0,
+            .cbWndExtra = 0,
+            .hInstance = hInstance,
+            .hCursor = LoadCursorA(nullptr, IDC_ARROW),
+            .hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH),
+            .lpszClassName = MAIN_WND_CLASS_NAME
+        };
+
+        if (!RegisterClassExA(&wc))
+        {
+            [[maybe_unused]] DWORD e = GetLastError();
+            return nullptr;
+        }
+
+        uint32_t clientWidth = 1280;
+        uint32_t clientHeight = 720;
+
+        RECT wr = { 0, 0, static_cast<LONG>(clientWidth), static_cast<LONG>(clientHeight) };
+        DWORD windowStyle = WS_OVERLAPPEDWINDOW | WS_VISIBLE;
+
+        AdjustWindowRect(&wr, windowStyle, FALSE);
+
+        window->hwnd = CreateWindowExA(
+            0,
+            MAIN_WND_CLASS_NAME,
+            "Delta Engine",
+            windowStyle,
+            CW_USEDEFAULT, CW_USEDEFAULT,
+            wr.right - wr.left,
+            wr.bottom - wr.top,
+            nullptr,
+            nullptr,
+            hInstance,
+            nullptr
+        );
+
+        if (!window->hwnd)
+        {
+            return nullptr;
+        }
+
+        ShowWindow(window->hwnd, nCmdShow);
+        UpdateWindow(window->hwnd);
+
+        return window;
+    }
 }
 
 #endif
