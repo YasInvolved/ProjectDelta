@@ -43,18 +43,23 @@ namespace delta::Engine
         delta::platform::ThreadHandle th = delta::platform::Thread_GetCurrentHandle();
         delta::platform::Thread_AssignPhysicalCore(th, 0);
         delta::core::Worker_Init(totalThreads-1);
+
+        context.window = delta::platform::Window_Create();
     }
 
     void Update(Context& context)
     {
         // blah blah blah
         // do something
-        delta::platform::Sync_Sleep(100);
+
+        delta::platform::Window_ProcessEvents();
+        delta::platform::Sync_Sleep(10);
         delta::core::ThreadArena_Reset(delta::core::GetTransientArena());
     }
 
     void Shutdown(Context& context)
     {
+        Engine::Free(context.window);
         delta::core::Worker_Shutdown();
         delta::core::ThreadContext_Shutdown();
         delta::core::MemoryConfig_Shutdown();

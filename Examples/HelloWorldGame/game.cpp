@@ -38,22 +38,7 @@ extern "C"
     void GAME_API Game_OnInit(delta::Engine::Context* context)
     {
         const OSInfo* info = delta::platform::getOSInfo();
-
-        std::cout << "Initializing game\n";
-        std::cout << "System Info:\n";
-        std::cout <<
-            "\tOS Page Size: " << info->osPageSize << " bytes\n" <<
-            "\tCPU Architecture: " << info->cpuArchitecture << "\n" <<
-            "\tCPU Manufacturer: " << info->cpuManufacturerId << "\n" <<
-            "\tCPU Model: " << info->cpuBrandString << "\n" <<
-            "\tCPU Physical Cores: " << info->cpuPhysicalCoreCount << "\n" <<
-            "\tCPU Logical Cores: " << info->cpuLogicalProcessorCount << "\n" <<
-            "\tCPU Has SMT: " << STDOUT_BOOL_FORMAT(info->cpuHasSMT) << "\n" << 
-            "\tAVX2 Available: " << STDOUT_BOOL_FORMAT(info->cpuHasAVX2) << "\n" <<
-            "\tAVX512 Foundation Available: " << STDOUT_BOOL_FORMAT(info->cpuHasAVX512f) << "\n" <<
-            "\tAVX512 Conflict Detection Available: " << STDOUT_BOOL_FORMAT(info->cpuHasAVX512cd) << "\n" <<
-            "\tAVX512 Exponential and Reciprocal Available: " << STDOUT_BOOL_FORMAT(info->cpuHasAVX512er) << "\n" <<
-            "\tAVX512 Prefetch Available: " << STDOUT_BOOL_FORMAT(info->cpuHasAVX512pf) << "\n";
+        delta::platform::Window_SetTitle(context->window, "Hello World Game");
     }
 
     void GAME_API Game_OnUpdate(delta::Engine::Context* context)

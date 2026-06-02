@@ -19,6 +19,11 @@
 
 namespace delta::platform
 {
+    // General
+    // TODO: Change names to the adequate ones
     DLT_API const OSInfo* getOSInfo() noexcept;
     DLT_API MemoryStatus getMemoryStatus();
+
+    // Window API
+    DLT_API void Window_SetTitle(WindowHandle window, const char* newTitle);
 }

@@ -527,6 +527,11 @@ namespace delta::platform
         DestroyWindow(window->hwnd);
         UnregisterClassA(MAIN_WND_CLASS_NAME, s_hInstance);
     }
+
+    void Window_SetTitle(WindowHandle window, const char* newTitle)
+    {
+        SetWindowTextA(window->hwnd, newTitle);
+    }
 }
 
 #endif
