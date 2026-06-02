@@ -15,34 +15,10 @@
  */
 
 #pragma once
+#include <delta/platform/os_types.h>
 
 namespace delta::platform
 {
-    struct OSInfo
-    {
-        const char* cpuArchitecture;
-
-        uint32_t cpuPhysicalCoreCount;
-        uint32_t cpuLogicalProcessorCount;
-        uint32_t osPageSize;
-
-        char cpuBrandString[sizeof(int) * 12 + 1];
-        char cpuManufacturerId[13];
-
-        bool cpuHasSMT;
-        bool cpuHasAVX2;
-        bool cpuHasAVX512f;
-        bool cpuHasAVX512cd;
-        bool cpuHasAVX512er;
-        bool cpuHasAVX512pf;
-    };
-
-    struct MemoryStatus
-    {
-        uint64_t physicalInstalled;
-        uint64_t physicalFree;
-    };
-
     DLT_API const OSInfo* getOSInfo() noexcept;
     DLT_API MemoryStatus getMemoryStatus();
 }

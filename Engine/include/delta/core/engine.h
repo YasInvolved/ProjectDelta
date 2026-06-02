@@ -15,11 +15,13 @@
  */
 
 #include <delta/definitions.h>
+#include <delta/platform/os_types.h>
 
 namespace delta::Engine
 {
     struct Context
     {
+        delta::platform::WindowHandle window;
         bool isRunning;
     };
 

@@ -15,6 +15,7 @@
  */
 
 #pragma once
+#include <delta/platform/os_internal_types.h>
 
 namespace delta::platform
 {
@@ -31,28 +32,12 @@ namespace delta::platform
     bool    Memory_ElevateLockLimit(size_t maxBytesToLock);
 
     // Timer API
-    struct Timer_Internal;
-    struct Timer
-    {
-        alignas(8) uint8_t opaqueData[32];
-    };
-
     void    Timer_Initialize(Timer* timer);
     int64_t Timer_GetTimestamp();
     double  Timer_TicksToMilliseconds(const Timer* timer, int64_t startTicks, int64_t endTicks);
     double  Timer_TicksToMicroseconds(const Timer* timer, int64_t startTicks, int64_t endTicks);
 
     // Thread API
-    struct Thread;
-    using ThreadHandle = Thread*;
-    inline constexpr ThreadHandle INVALID_THREAD_HANDLE = nullptr; // random number 696767
-
-    struct ThreadCreateInfo
-    {
-        void (*fn)(void*);
-        void* args;
-    };
-
     uint32_t Thread_GetCurrentId();
     uint32_t Thread_GetId(ThreadHandle thread);
     ThreadHandle Thread_GetCurrentHandle();
@@ -63,9 +48,6 @@ namespace delta::platform
     void Thread_JoinMultiple(ThreadHandle* threads, uint32_t count);
 
     // Sync API
-    struct Semaphore;
-    using SemaphoreHandle = Semaphore*;
-
     SemaphoreHandle Sync_CreateSemaphore();
     void Sync_DestroySemaphore(SemaphoreHandle sem);
     void Sync_SignalSemaphore(SemaphoreHandle sem);
@@ -73,8 +55,6 @@ namespace delta::platform
     void Sync_Sleep(uint32_t milliseconds);
 
     // Window API
-    struct Window;
-
     Window* Window_Create();
     void Window_ProcessEvents();
     void Window_Destroy(Window* window);

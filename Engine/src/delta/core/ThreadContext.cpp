@@ -156,7 +156,7 @@ namespace delta::core
             WorkerExecutionContext& ctx = GetExecutionContext<WorkerExecutionContext>(i);
             ctx.generic.type = ThreadType::WORKER;
             ctx.generic.threadIx = i;
-            ctx.generic.threadHandle = delta::platform::INVALID_THREAD_HANDLE; // Initialized when thread starts
+            ctx.generic.threadHandle = delta::platform::INVALID_Thread_HANDLE; // Initialized when thread starts
             ctx.isAsleep.store(false, std::memory_order_relaxed);
             ctx.shouldClose.store(false, std::memory_order_relaxed);
             ctx.sleepSemaphore = delta::platform::Sync_CreateSemaphore();

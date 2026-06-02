@@ -20,6 +20,7 @@ add_library(ProjectDelta SHARED
    "include/delta/definitions.h"
    "src/delta/platform/os_internal.h"
    "src/delta/platform/os_win32.cpp"
+   "include/delta/platform/os_types.h"
    "include/delta/platform/os.h"
    "include/delta/pch.h"
    "src/delta/pch.h"
@@ -31,7 +32,7 @@ add_library(ProjectDelta SHARED
    "src/delta/core/MemoryConfig.cpp"
    "src/delta/core/Worker.h"
    "src/delta/core/Worker.cpp"
-)
+ "src/delta/platform/os_internal_types.h")
 
 target_compile_definitions(ProjectDelta
    PRIVATE DLT_EXPORT_SYMBOLS
