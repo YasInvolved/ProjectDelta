@@ -55,7 +55,8 @@ namespace delta::platform
     void Sync_Sleep(uint32_t milliseconds);
 
     // Window API
-    Window* Window_Create();
+    WindowHandle Window_Create();
+    void Window_Win32_Update(WindowHandle window);
     void Window_ProcessEvents();
-    void Window_Destroy(Window* window);
+    void Window_Destroy(WindowHandle window);
 }

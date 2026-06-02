@@ -25,6 +25,9 @@
 
 #define CHECK_CPUID_FLAG(register, flag) ((register & (1 << flag)) != 0)
 
+_declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
+_declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
+
 namespace delta::platform
 {
     static OSInfo g_osInfo;
@@ -448,10 +451,10 @@ namespace delta::platform
         }
     }
 
-    Window* Window_Create()
+    WindowHandle Window_Create()
     {
         assert(s_hInstance);
-        Window* window = new(delta::Engine::AllocationType::PERSISTENT) Window();
+        WindowHandle window = new(delta::Engine::AllocationType::PERSISTENT) Window();
 
         int nCmdShow = (s_StartupInfo.dwFlags & STARTF_USESHOWWINDOW) ? s_StartupInfo.wShowWindow : SW_SHOWDEFAULT;
 
@@ -478,7 +481,7 @@ namespace delta::platform
         uint32_t clientHeight = 720;
 
         RECT wr = { 0, 0, static_cast<LONG>(clientWidth), static_cast<LONG>(clientHeight) };
-        DWORD windowStyle = WS_OVERLAPPEDWINDOW | WS_VISIBLE;
+        static constexpr DWORD windowStyle = WS_OVERLAPPEDWINDOW;
 
         AdjustWindowRect(&wr, windowStyle, FALSE);
 
@@ -501,10 +504,12 @@ namespace delta::platform
             return nullptr;
         }
 
-        ShowWindow(window->hwnd, nCmdShow);
-        UpdateWindow(window->hwnd);
-
         return window;
+    }
+
+    void Window_Win32_Update(WindowHandle window)
+    {
+        UpdateWindow(window->hwnd);
     }
 
     void Window_ProcessEvents()
@@ -522,7 +527,7 @@ namespace delta::platform
         }
     }
 
-    void Window_Destroy(Window* window)
+    void Window_Destroy(WindowHandle window)
     {
         DestroyWindow(window->hwnd);
         UnregisterClassA(MAIN_WND_CLASS_NAME, s_hInstance);
@@ -531,6 +536,38 @@ namespace delta::platform
     void Window_SetTitle(WindowHandle window, const char* newTitle)
     {
         SetWindowTextA(window->hwnd, newTitle);
+    }
+
+    void Window_Show(WindowHandle window)
+    {
+        ShowWindow(window->hwnd, SW_SHOW);
+    }
+
+    void Window_Hide(WindowHandle window)
+    {
+        ShowWindow(window->hwnd, SW_HIDE);
+    }
+
+    void Window_SetSize(WindowHandle window, uint32_t w, uint32_t h)
+    {
+        static constexpr UINT FLAGS = SWP_NOMOVE | SWP_NOZORDER | SWP_SHOWWINDOW;
+        SetWindowPos(window->hwnd, nullptr, 0, 0, w, h, FLAGS);
+    }
+
+    void Window_SetPos(WindowHandle window, uint32_t x, uint32_t y)
+    {
+        static constexpr UINT FLAGS = SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW;
+        SetWindowPos(window->hwnd, nullptr, x, y, 0, 0, FLAGS);
+    }
+
+    void Window_ShowCursor(WindowHandle window)
+    {
+        ShowCursor(TRUE);
+    }
+
+    void Window_HideCursor(WindowHandle window)
+    {
+        ShowCursor(FALSE);
     }
 }
 

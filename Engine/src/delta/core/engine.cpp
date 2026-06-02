@@ -45,6 +45,8 @@ namespace delta::Engine
         delta::core::Worker_Init(totalThreads-1);
 
         context.window = delta::platform::Window_Create();
+        delta::platform::Window_Show(context.window);
+        delta::platform::Window_Win32_Update(context.window);
     }
 
     void Update(Context& context)

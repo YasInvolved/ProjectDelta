@@ -26,4 +26,10 @@ namespace delta::platform
 
     // Window API
     DLT_API void Window_SetTitle(WindowHandle window, const char* newTitle);
+    DLT_API void Window_Show(WindowHandle window);
+    DLT_API void Window_Hide(WindowHandle window);
+    DLT_API void Window_SetSize(WindowHandle window, uint32_t w, uint32_t h);
+    DLT_API void Window_SetPos(WindowHandle window, uint32_t x, uint32_t y);
+    DLT_API void Window_ShowCursor(WindowHandle window);
+    DLT_API void Window_HideCursor(WindowHandle window);
 }
